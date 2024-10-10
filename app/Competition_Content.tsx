@@ -20,12 +20,33 @@ export default class ScroCompetition_Content extends Component<{}, State> {
   }
 
   _renderScrollViewContent() {
-    const data = Array.from({ length: 30 });
+    const events = [
+      "70m Women Recurve (1 dây)",
+      "Toàn năng (70 mx 2) Men Recurve (1 dây)",
+      "90m Men Compound (3 dây)",
+      "90m Men Recurve (1 dây)",
+      "Đôi Nam Cung 1 dây",
+      "Đôi Nữ Cung 1 dây",
+      "Đôi Nam - Nữ Cung 1 dây",
+      "90m Men Compound (3 dây)",
+      "90m Men Recurve (1 dây)",
+      "70m Women Recurve (1 dây)",
+      "70m Women Recurve (1 dây)",
+      "Đôi Nam Cung 1 dây",
+      "Đôi Nữ Cung 1 dây",
+      "Đôi Nam - Nữ Cung 1 dây",
+      "90m Men Compound (3 dây)",
+      "90m Men Recurve (1 dây)",
+      "70m Women Recurve (1 dây)",
+      "Đôi Nam Cung 1 dây",
+      "Đôi Nữ Cung 1 dây",
+      "Đôi Nam - Nữ Cung 1 dây",
+    ];
     return (
       <View style={styles.scrollViewContent}>
-        {data.map((_, i) => (
+        {events.map((event, i) => (
           <View key={i} style={styles.row}>
-            <Text>{i}</Text>
+            <Text style={styles.textEvent}>{event}</Text>
           </View>
         ))}
       </View>
@@ -85,10 +106,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   row: {
-    height: 40,
-    margin: 16,
-    backgroundColor: "#D3D3D3",
-    alignItems: "center",
+    height: 50,
+    margin: 8,
+    padding: 8,
+    paddingLeft: 16,
+    backgroundColor: "#ffffff",
+    alignItems: "flex-start",
     justifyContent: "center",
   },
   header: {
@@ -96,13 +119,17 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#777979",
+    backgroundColor: "#d7e1e1",
     overflow: "hidden",
     textAlign: "center",
     justifyContent: "center",
   },
+  textEvent: {
+    fontSize: 17,
+    fontWeight: "bold",
+  },
   bar: {
-    marginTop: 28,
+    marginTop: 14,
     height: 32,
     alignItems: "center",
     justifyContent: "center",
@@ -110,7 +137,8 @@ const styles = StyleSheet.create({
   title: {
     backgroundColor: "transparent",
     color: "black",
-    fontSize: 18,
+    fontSize: 25,
+    fontWeight: "bold",
   },
   scrollViewContent: {
     marginTop: HEADER_MAX_HEIGHT,
