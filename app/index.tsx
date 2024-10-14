@@ -7,6 +7,7 @@ import { useLoginMutation } from "./LoginApi";
 
 const Login = () => {
   const [code, setCode] = useState("");
+  const [tkdemo, setTkdemo] = useState("123123");
   const [name, setName] = useState("");
   const [isNamePopupVisible, setIsNamePopupVisible] = useState(false);
   const [login, { isLoading, error }] = useLoginMutation();
@@ -21,20 +22,23 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
-    try {
-      const response = await login({ code, name });
-      if (response.data) {
-        console.log("Login success!", response.data);
-      } else {
-        console.log("Login failed");
-      }
-    } catch (err) {
-      console.error("Error:", err);
-    } finally {
-      setIsNamePopupVisible(false);
+    // try {
+    //   const response = await login({ code: code, name: name });
+
+    //   if (response.data) {
+    //     console.log("Login success!", response.data);
+    //   } else {
+    //     console.log("Login failed", response);
+    //   }
+    // } catch (err) {
+    //   console.error("Error:", err);
+    // } finally {
+    //   setIsNamePopupVisible(false);
+    // }
+    if (code == tkdemo) {
+      router.push({ pathname: "/Competition_Content" });
     }
   };
-
   return (
     <SafeAreaView style={styles.container}>
       <View>
@@ -51,6 +55,7 @@ const Login = () => {
           style={styles.input}
           value={code}
           onChangeText={setCode}
+          keyboardType="number-pad"
         />
         <Button
           mode="contained"
