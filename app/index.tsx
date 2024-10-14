@@ -1,20 +1,40 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { View, Image, StyleSheet, StatusBar, Text } from "react-native"; // Đảm bảo Text được import
-import { Button, TextInput } from "react-native-paper";
+import { View, Image, StyleSheet } from "react-native";
+import { Button, TextInput, Text, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLoginMutation } from "./LoginApi";
 
 const Login = () => {
+  const [code, setCode] = useState("");
+  const [name, setName] = useState("");
+  const [isNamePopupVisible, setIsNamePopupVisible] = useState(false);
+  const [login, { isLoading, error }] = useLoginMutation();
   const router = useRouter();
-  const [tkdemo, setTkDemo] = useState("");
-  const acountDM = "ngp123";
-  const handleLogin = () => {
-    if (tkdemo === acountDM) {
-      router.push({ pathname: "/Competition_Content" });
+
+  const handleCodeSubmit = () => {
+    if (code.trim()) {
+      setIsNamePopupVisible(true);
     } else {
-      alert("Sai mã đăng nhập");
+      console.log("Code không được để trống");
     }
   };
+
+  const handleLogin = async () => {
+    try {
+      const response = await login({ code, name });
+      if (response.data) {
+        console.log("Login success!", response.data);
+      } else {
+        console.log("Login failed");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setIsNamePopupVisible(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View>
@@ -29,16 +49,21 @@ const Login = () => {
           placeholder="Mã nội dung thi đấu"
           mode="outlined"
           style={styles.input}
-          onChangeText={(text) => setTkDemo(text)}
+          value={code}
+          onChangeText={setCode}
         />
         <Button
           mode="contained"
           style={styles.button}
           labelStyle={styles.text}
-          onPress={handleLogin}
+          onPress={handleCodeSubmit}
+          disabled={isLoading}
         >
-          Đăng nhập
+          {isLoading ? "Đang kiểm tra..." : "Đăng nhập"}
         </Button>
+        {error && (
+          <Text style={{ color: "red" }}>Login failed. Please try again.</Text>
+        )}
         <Button
           mode="contained"
           style={styles.button}
@@ -48,6 +73,33 @@ const Login = () => {
           Quét QR Code
         </Button>
       </View>
+
+      <Portal>
+        <Dialog
+          visible={isNamePopupVisible}
+          onDismiss={() => setIsNamePopupVisible(false)}
+        >
+          <Dialog.Title>Nhập tên giám khảo</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              placeholder="Nhập tên của giám khảo"
+              mode="outlined"
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              style={styles.button_popup}
+              labelStyle={styles.text}
+              onPress={handleLogin}
+            >
+              Xác nhận
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 };
@@ -70,9 +122,15 @@ const styles = StyleSheet.create({
   input: {
     marginTop: 2,
     padding: 4,
-    borderRadius: 20,
+    borderRadius: 2,
   },
   button: {
+    marginTop: 20,
+    padding: 6,
+    borderRadius: 10,
+    backgroundColor: "#FFA500",
+  },
+  button_popup: {
     marginTop: 20,
     padding: 6,
     borderRadius: 10,
@@ -81,7 +139,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 17,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#f3ecec",
   },
 });
 

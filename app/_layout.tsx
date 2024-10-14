@@ -1,8 +1,3 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -10,8 +5,10 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { Provider as PaperProvider } from "react-native-paper"; // Đổi tên Provider từ react-native-paper để không trùng
+import { Provider as ReduxProvider } from "react-redux"; // Provider từ react-redux
+import { store } from "@/store";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -31,14 +28,16 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="Competition_Content"
-          options={{ headerShown: false }}
-        />
-      </Stack>
-    </ThemeProvider>
+    <ReduxProvider store={store}>
+      <PaperProvider>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="Competition_Content"
+            options={{ headerShown: false }}
+          />
+        </Stack>
+      </PaperProvider>
+    </ReduxProvider>
   );
 }
