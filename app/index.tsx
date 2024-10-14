@@ -4,7 +4,7 @@ import { View, Image, StyleSheet } from "react-native";
 import { Button, TextInput, Text, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLoginMutation } from "./LoginApi";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const Login = () => {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -24,9 +24,12 @@ const Login = () => {
     try {
       const response = await login({ code, name });
       if (response.data) {
-        console.log("Login success!", response.data);
+        AsyncStorage.setItem("token", response.data.token);
       } else {
-        console.log("Login failed");
+        console.log(
+          "🚀 ~ file: index.tsx:26 ~ handleLogin ~ response:",
+          response
+        );
       }
     } catch (err) {
       console.error("Error:", err);
@@ -52,23 +55,27 @@ const Login = () => {
           value={code}
           onChangeText={setCode}
         />
+        {error && (
+          <Text style={{ color: "red" }}>
+            Login failed. {String((error as any)?.data?.message) || "Please try again."}
+          </Text>
+        )}
         <Button
           mode="contained"
           style={styles.button}
           labelStyle={styles.text}
           onPress={handleCodeSubmit}
           disabled={isLoading}
+          loading={isLoading}
         >
           {isLoading ? "Đang kiểm tra..." : "Đăng nhập"}
         </Button>
-        {error && (
-          <Text style={{ color: "red" }}>Login failed. Please try again.</Text>
-        )}
         <Button
           mode="contained"
           style={styles.button}
           labelStyle={styles.text}
           onPress={() => router.push({ pathname: "/barCode" })}
+          loading={isLoading}
         >
           Quét QR Code
         </Button>

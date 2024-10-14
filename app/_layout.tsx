@@ -36,6 +36,10 @@ export default function RootLayout() {
             name="Competition_Content"
             options={{ headerShown: false }}
           />
+           <Stack.Screen
+            name="barCode"
+            options={{ title: "Quét mã chấm thi" }}
+          />
         </Stack>
       </PaperProvider>
     </ReduxProvider>

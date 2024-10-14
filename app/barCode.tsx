@@ -3,6 +3,8 @@ import { Text, View, StyleSheet, Alert } from "react-native";
 import { CameraView, Camera } from "expo-camera";
 import { BarCodeScanningResult } from "expo-camera/build/legacy/Camera.types";
 import { Dialog, TextInput, Button } from "react-native-paper";
+import { useLoginMutation } from "./LoginApi";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState(false);
@@ -10,6 +12,7 @@ export default function App() {
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState("");
   const [qrData, setQrData] = useState("");
+  const [login] = useLoginMutation();
 
   useEffect(() => {
     const getCameraPermissions = async () => {
@@ -25,24 +28,30 @@ export default function App() {
     setQrData(data);
     setModalVisible(true); // Show the popup to input the name
   };
-  const handleApiCall = () => {
+  const handleApiCall = async () => {
     if (qrData && name) {
       // Call your API with the qrData and name
       console.log("Calling API with QR data:", qrData, "and name:", name);
 
-      // Simulating API response
-      const isSuccess = qrData === "expectedQrCode" && name === "expectedName";
-      if (isSuccess) {
-        Alert.alert("Success", "QR code and name are valid!");
-      } else {
-        Alert.alert("Error", "QR code or name is invalid.");
+      try {
+        const response = await login({ code: qrData, name });
+        if (response.data) {
+          AsyncStorage.setItem("token", response.data.token);
+        } else {
+          console.log(
+            "🚀 ~ file: index.tsx:26 ~ handleLogin ~ response:",
+            response
+          );
+        }
+      } catch (err) {
+        console.error("Error:", err);
+      } finally {
+        // Reset
+        setModalVisible(false);
+        setScanned(false);
+        setName("");
+        setQrData("");
       }
-
-      // Reset
-      setModalVisible(false);
-      setScanned(false);
-      setName("");
-      setQrData("");
     } else {
       Alert.alert("Error", "Please enter a valid name.");
     }
