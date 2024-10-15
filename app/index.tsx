@@ -35,9 +35,9 @@ const Login = () => {
       console.error("Error:", err);
     } finally {
       setIsNamePopupVisible(false);
+      router.push({ pathname: "/Competition_Content" });
     }
   };
-
   return (
     <SafeAreaView style={styles.container}>
       <View>
@@ -54,6 +54,7 @@ const Login = () => {
           style={styles.input}
           value={code}
           onChangeText={setCode}
+          keyboardType="number-pad"
         />
         {error && (
           <Text style={{ color: "red" }}>
@@ -114,6 +115,7 @@ const Login = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f7f6f6",
   },
   image: {
     height: 200,

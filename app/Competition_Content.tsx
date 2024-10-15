@@ -1,25 +1,24 @@
-import React, { Component } from "react";
-import { Animated, ScrollView, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import React from "react";
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useEvent } from "./eventContext";
 
 const HEADER_MAX_HEIGHT = 160;
 const HEADER_MIN_HEIGHT = 60;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
-interface State {
-  scrollY: Animated.Value;
-}
+const ScroCompetition_Content: React.FC = () => {
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const { setEventName } = useEvent();
 
-export default class ScroCompetition_Content extends Component<{}, State> {
-  constructor(props: {}) {
-    super(props);
-
-    this.state = {
-      scrollY: new Animated.Value(0),
-    };
-  }
-
-  _renderScrollViewContent() {
+  const _renderScrollViewContent = () => {
     const events = [
       "70m Women Recurve (1 dây)",
       "Toàn năng (70 mx 2) Men Recurve (1 dây)",
@@ -42,64 +41,75 @@ export default class ScroCompetition_Content extends Component<{}, State> {
       "Đôi Nữ Cung 1 dây",
       "Đôi Nam - Nữ Cung 1 dây",
     ];
+
     return (
       <View style={styles.scrollViewContent}>
         {events.map((event, i) => (
-          <View key={i} style={styles.row}>
-            <Text style={styles.textEvent}>{event}</Text>
-          </View>
+          <TouchableOpacity
+            key={i}
+            style={styles.row}
+            onPress={() => {
+              setEventName(event); // Cập nhật eventName trong context
+              router.push("/EventDetail"); // Điều hướng tới màn EventDetail
+            }}
+          >
+            <View>
+              <Text style={styles.textEvent}>{event}</Text>
+            </View>
+          </TouchableOpacity>
         ))}
       </View>
     );
-  }
+  };
 
-  render() {
-    const headerHeight = this.state.scrollY.interpolate({
-      inputRange: [0, HEADER_SCROLL_DISTANCE],
-      outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-      extrapolate: "clamp",
-    });
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    extrapolate: "clamp",
+  });
 
-    const titleOpacity = this.state.scrollY.interpolate({
-      inputRange: [0, HEADER_SCROLL_DISTANCE],
-      outputRange: [1, 1],
-      extrapolate: "clamp",
-    });
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 1],
+    extrapolate: "clamp",
+  });
 
-    const titleScale = this.state.scrollY.interpolate({
-      inputRange: [0, HEADER_SCROLL_DISTANCE],
-      outputRange: [1, 1],
-      extrapolate: "clamp",
-    });
-    return (
-      <SafeAreaView style={styles.fill}>
-        <View style={styles.fill}>
-          <Animated.ScrollView
-            style={styles.fill}
-            scrollEventThrottle={16}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: this.state.scrollY } } }],
-              { useNativeDriver: false }
-            )}
+  const titleScale = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 1],
+    extrapolate: "clamp",
+  });
+
+  return (
+    <SafeAreaView style={styles.fill}>
+      <View style={styles.fill}>
+        <Animated.ScrollView
+          style={styles.fill}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+        >
+          {_renderScrollViewContent()}
+        </Animated.ScrollView>
+
+        <Animated.View style={[styles.header, { height: headerHeight }]}>
+          <Animated.View
+            style={[
+              styles.bar,
+              { opacity: titleOpacity, transform: [{ scale: titleScale }] },
+            ]}
           >
-            {this._renderScrollViewContent()}
-          </Animated.ScrollView>
-
-          <Animated.View style={[styles.header, { height: headerHeight }]}>
-            <Animated.View
-              style={[
-                styles.bar,
-                { opacity: titleOpacity, transform: [{ scale: titleScale }] },
-              ]}
-            >
-              <Text style={styles.title}>Nội dung thi đấu</Text>
-            </Animated.View>
+            <Text style={styles.title}>Nội dung thi đấu</Text>
           </Animated.View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-}
+        </Animated.View>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default ScroCompetition_Content;
 
 const styles = StyleSheet.create({
   fill: {
