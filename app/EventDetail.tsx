@@ -3,14 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-
-type RouteParams = {
-  eventName: string;
-};
+import { useEvent } from "./eventContext";
 
 const EventDetail = () => {
-  const route = useRoute<RouteProp<{ params: RouteParams }>>();
-  const { eventName } = route.params;
+  const { eventName } = useEvent();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -104,8 +100,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 10,
     elevation: 5,
-    alignSelf: "center", // Căn giữa nút
-    marginBottom: 30, // Cách đáy 20px
+    alignSelf: "center",
+    marginBottom: 30,
   },
   label_event: {
     fontSize: 18,

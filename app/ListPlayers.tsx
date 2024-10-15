@@ -3,13 +3,24 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import { router } from "expo-router";
+interface ListPlayersProps {
+  ArrayScoreNew: string[];
+}
+const ListPlayers: React.FC<ListPlayersProps> = ({ ArrayScoreNew }) => {
+  const name = ["Nguyễn Văn A", "Nguyễn Văn B", "Nguyễn Văn C", "Nguyễn Văn D"];
 
-const ListPlayers = () => {
   const [playerId, setPlayerId] = useState<number | null>(null);
   const toggleExpand = (id: number) => {
     setPlayerId(playerId === id ? null : id);
   };
-  const [isExpanded, setIsExpanded] = useState(false);
+  const handleClick = (playerName: string) => {
+    router.push({
+      pathname: "/TotalEnd/Player_center",
+      params: { playerName },
+    });
+  };
+  const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(null);
   return (
     <SafeAreaView>
       <View>
@@ -35,16 +46,18 @@ const ListPlayers = () => {
           />
         </View>
         <View style={styles.list}>
-          {[1, 2, 3, 4].map((id) => (
-            <View key={id} style={styles.player}>
+          {name.map((playerName, index) => (
+            <View key={index} style={styles.player}>
               <TouchableOpacity
                 style={styles.view1list}
-                onPress={() => toggleExpand(id)}
+                onPress={() => {
+                  toggleExpand(index);
+                  handleClick(playerName);
+                }}
               >
-                <Text style={styles.title2}>Nguyễn Văn A </Text>
-                <Text style={styles.title2}>150 </Text>
+                <Text style={styles.title2}>{playerName}</Text>
               </TouchableOpacity>
-              {playerId === id && (
+              {expandedPlayerId === playerId && (
                 <>
                   <View style={styles.cay}>
                     <View style={styles.view2list}>
@@ -133,7 +146,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 6,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
     borderBottomColor: "#ccc",
   },
   view2list: {
@@ -186,17 +199,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   player: {
-    backgroundColor: "#ffffff", // Màu nền
-    shadowColor: "#000", // Đặt bóng đổ
-    shadowOffset: { width: 2, height: 4 }, // Khoảng cách bóng đổ
-    shadowOpacity: 0.3, // Độ mờ của bóng đổ
-    shadowRadius: 10, // Độ lan tỏa của bóng đổ
-    elevation: 5, // Tạo bóng đổ cho Android
-    borderWidth: 2, // Đặt độ rộng của viền
-    borderColor: "gray", // Màu của viền
-    borderRadius: 8, // Bo góc viền nếu cần
-    padding: 10, // Khoảng cách bên trong của thành phần
-    marginBottom: 10, // Khoảng cách bên dưới giữa các phần tử
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "gray",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
   },
   list: {
     marginTop: 10,
@@ -205,13 +218,13 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
   },
   endColumn: {
-    flex: 1.5, // Cột "end" rộng hơn một chút
+    flex: 1.5,
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 16,
   },
   totalColumn: {
-    flex: 1.5, // Cột "total" rộng hơn một chút
+    flex: 1.5,
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 16,

@@ -36,6 +36,7 @@ const Login = () => {
     //   setIsNamePopupVisible(false);
     // }
     if (code == tkdemo) {
+      setIsNamePopupVisible(false);
       router.push({ pathname: "/Competition_Content" });
     }
   };
@@ -112,6 +113,7 @@ const Login = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f7f6f6",
   },
   image: {
     height: 200,

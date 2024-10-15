@@ -1,5 +1,5 @@
-import { router, useRouter } from "expo-router";
-import React, { Component } from "react";
+import { router } from "expo-router";
+import React from "react";
 import {
   Animated,
   StyleSheet,
@@ -8,17 +8,15 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useEvent } from "./eventContext";
 
 const HEADER_MAX_HEIGHT = 160;
 const HEADER_MIN_HEIGHT = 60;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
-interface State {
-  scrollY: Animated.Value;
-}
-
 const ScroCompetition_Content: React.FC = () => {
   const scrollY = React.useRef(new Animated.Value(0)).current;
+  const { setEventName } = useEvent();
 
   const _renderScrollViewContent = () => {
     const events = [
@@ -51,10 +49,8 @@ const ScroCompetition_Content: React.FC = () => {
             key={i}
             style={styles.row}
             onPress={() => {
-              router.push({
-                pathname: "/EventDetail",
-                params: { eventName: event },
-              });
+              setEventName(event); // Cập nhật eventName trong context
+              router.push("/EventDetail"); // Điều hướng tới màn EventDetail
             }}
           >
             <View>
@@ -114,10 +110,6 @@ const ScroCompetition_Content: React.FC = () => {
 };
 
 export default ScroCompetition_Content;
-
-interface EventButtonProps {
-  event: string;
-}
 
 const styles = StyleSheet.create({
   fill: {
