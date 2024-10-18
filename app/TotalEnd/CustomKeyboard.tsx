@@ -17,7 +17,8 @@ const CustomKeyboard: React.FC<CustomKeyboardProps> = ({ onKeyPress }) => {
     ["1", "2", "3"],
     ["4", "5", "6"],
     ["7", "8", "9"],
-    ["M", "10", "DEL"],
+    ["M", "10", "10X"],
+    ["DEL"],
   ];
 
   return (
@@ -32,7 +33,7 @@ const CustomKeyboard: React.FC<CustomKeyboardProps> = ({ onKeyPress }) => {
                   Vibration.vibrate();
                   onKeyPress(key);
                 }}
-                style={styles.key}
+                style={[styles.key, styles.delKey]}
               >
                 <Feather name="delete" size={24} color="black" />
               </TouchableOpacity>
@@ -45,7 +46,7 @@ const CustomKeyboard: React.FC<CustomKeyboardProps> = ({ onKeyPress }) => {
                 }}
                 style={styles.key}
               >
-                <Text style={KeyColor(key)}>{key}</Text>
+                <Text style={[styles.keyText, KeyColor(key)]}>{key}</Text>
               </TouchableOpacity>
             )
           )}
@@ -62,7 +63,9 @@ const KeyColor = (key: string) => {
   if (key === "9" || key === "10") {
     return styles.blueText;
   }
-  return styles.keyText;
+  if (key === "10X") {
+    return styles.xText;
+  }
 };
 
 const styles = StyleSheet.create({
@@ -79,8 +82,6 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   key: {
-    // width: 85,
-    // height: 60,
     flex: 1,
     height: 54,
     borderRadius: 12,
@@ -98,15 +99,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
   },
+  delKey: {
+    flex: 3,
+    backgroundColor: "#4dbef3",
+  },
   redText: {
-    fontSize: 24,
-    fontWeight: "bold",
     color: "red",
   },
   blueText: {
-    fontSize: 24,
-    fontWeight: "bold",
     color: "blue",
+  },
+  xText: {
+    color: "green",
   },
 });
 

@@ -1,11 +1,12 @@
 // Player_center.tsx
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -22,9 +23,11 @@ const Player_center = () => {
   const { eventName } = useEvent();
   const { playerName } = route.params;
   const [ArrayScoreNew, setArrayScoreNew] = useState<string[]>([]);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const inputRefs = useRef<(TextInput | null)[][]>([]);
 
   const [rows, setRows] = useState(
-    Array.from({ length: 6 }, () => ({
+    Array.from({ length: 12 }, () => ({
       inputs: Array(6).fill(""),
       end: 0,
       total: 0,
@@ -34,6 +37,49 @@ const Player_center = () => {
     rowIndex: number;
     colIndex: number;
   } | null>(null);
+  useEffect(() => {
+    // Focus vào ô trống đầu tiên khi trang vừa được mở
+    const firstEmptyCell = findFirstEmptyCell();
+    if (firstEmptyCell) {
+      const { rowIndex, colIndex } = firstEmptyCell;
+      setActiveInput({ rowIndex, colIndex });
+      focusInput(rowIndex, colIndex);
+    }
+  }, []);
+
+  // Hàm tìm ô trống đầu tiên trong bảng
+  const findFirstEmptyCell = () => {
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      for (
+        let colIndex = 0;
+        colIndex < rows[rowIndex].inputs.length;
+        colIndex++
+      ) {
+        if (rows[rowIndex].inputs[colIndex] === "") {
+          return { rowIndex, colIndex };
+        }
+      }
+    }
+    return null;
+  };
+
+  // Hàm focus vào ô tương ứng nếu tồn tại ref
+  const focusInput = (rowIndex: number, colIndex: number) => {
+    const input = inputRefs.current[rowIndex]?.[colIndex];
+    if (input) {
+      input.focus(); // Đảm bảo ô đó có ref trước khi gọi focus
+      scrollToRow(rowIndex);
+    }
+  };
+
+  const scrollToRow = (rowIndex: number) => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        y: rowIndex * 50, // Tính toán vị trí cuộn dựa vào chiều cao dòng
+        animated: true,
+      });
+    }
+  };
 
   const handleInputChange = (
     value: string,
@@ -76,7 +122,7 @@ const Player_center = () => {
       if (key !== "DEL") {
         if (colIndex < 5) {
           setActiveInput({ rowIndex, colIndex: colIndex + 1 });
-        } else if (rowIndex < 3) {
+        } else if (rowIndex < 11) {
           setActiveInput({ rowIndex: rowIndex + 1, colIndex: 0 });
         } else {
           setActiveInput(null);
@@ -109,50 +155,52 @@ const Player_center = () => {
         <View>
           <Text style={styles.title2}>{eventName}</Text>
         </View>
-        <View style={styles.player}>
-          <View style={styles.view1list}>
-            <Text style={styles.columnHeader}>1</Text>
-            <Text style={styles.columnHeader}>2</Text>
-            <Text style={styles.columnHeader}>3</Text>
-            <Text style={styles.columnHeader}>4</Text>
-            <Text style={styles.columnHeader}>5</Text>
-            <Text style={styles.columnHeader}>6</Text>
-            <Text style={styles.columnHeader}>End</Text>
-            <Text style={styles.columnHeader}>Total</Text>
-          </View>
-
-          {rows.map((row, rowIndex) => (
-            <View key={rowIndex} style={styles.table}>
-              {row.inputs.map((inputValue, colIndex) => (
-                <TouchableOpacity
-                  key={colIndex}
-                  onPress={() => setActiveInput({ rowIndex, colIndex })}
-                  style={styles.touchable}
-                >
-                  <TextInput
-                    keyboardType="numeric"
-                    value={inputValue}
-                    onChangeText={(value) =>
-                      handleInputChange(value, rowIndex, colIndex)
-                    }
-                    onFocus={() => setActiveInput({ rowIndex, colIndex })}
-                    showSoftInputOnFocus={false}
-                    editable={true}
-                    style={[
-                      styles.input,
-                      activeInput?.rowIndex === rowIndex &&
-                      activeInput?.colIndex === colIndex
-                        ? styles.activeInput
-                        : {},
-                    ]}
-                  />
-                </TouchableOpacity>
-              ))}
-              <Text style={styles.endText}>{row.end.toString()}</Text>
-              <Text style={styles.totalText}>{row.total.toString()}</Text>
+        <ScrollView ref={scrollViewRef} style={styles.scrollView}>
+          <View style={styles.player}>
+            <View style={styles.view1list}>
+              <Text style={styles.columnHeader}>1</Text>
+              <Text style={styles.columnHeader}>2</Text>
+              <Text style={styles.columnHeader}>3</Text>
+              <Text style={styles.columnHeader}>4</Text>
+              <Text style={styles.columnHeader}>5</Text>
+              <Text style={styles.columnHeader}>6</Text>
+              <Text style={styles.columnHeader}>End</Text>
+              <Text style={styles.columnHeader}>Total</Text>
             </View>
-          ))}
-        </View>
+
+            {rows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.table}>
+                {row.inputs.map((inputValue, colIndex) => (
+                  <TouchableOpacity
+                    key={colIndex}
+                    onPress={() => setActiveInput({ rowIndex, colIndex })}
+                    style={styles.touchable}
+                  >
+                    <TextInput
+                      keyboardType="numeric"
+                      value={inputValue}
+                      onChangeText={(value) =>
+                        handleInputChange(value, rowIndex, colIndex)
+                      }
+                      onFocus={() => setActiveInput({ rowIndex, colIndex })}
+                      showSoftInputOnFocus={false}
+                      editable={true}
+                      style={[
+                        styles.input,
+                        activeInput?.rowIndex === rowIndex &&
+                        activeInput?.colIndex === colIndex
+                          ? styles.activeInput
+                          : {},
+                      ]}
+                    />
+                  </TouchableOpacity>
+                ))}
+                <Text style={styles.endText}>{row.end.toString()}</Text>
+                <Text style={styles.totalText}>{row.total.toString()}</Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </View>
       <CustomKeyboard onKeyPress={handleKeyPress} />
     </SafeAreaView>
@@ -174,6 +222,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "#ccc",
     alignItems: "center",
+  },
+  scrollView: {
+    height: 300,
+    width: "100%",
   },
   player: {
     backgroundColor: "#e8e5e5",
