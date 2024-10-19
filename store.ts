@@ -5,11 +5,15 @@ import { useDispatch, useSelector } from "react-redux";
 // Define a type for the slice state
 interface AppState {
   token: string;
+  type:number;
+  competitionName: string;
 }
 
 // Define the initial state using that type
 const initialState: AppState = {
   token: "",
+  type:0,
+  competitionName: "",
 };
 
 export const appSlice = createSlice({
@@ -20,10 +24,16 @@ export const appSlice = createSlice({
     setToken: (state, action) => {
       state.token = action.payload;
     },
+    setType: (state, action) => {
+      state.type = action.payload;
+    },
+    setCompetitionName: (state, action) => {
+      state.competitionName = action.payload;
+    }
   },
 });
 
-export const { setToken } = appSlice.actions;
+export const { setToken, setType } = appSlice.actions;
 
 export const store = configureStore({
   reducer: {

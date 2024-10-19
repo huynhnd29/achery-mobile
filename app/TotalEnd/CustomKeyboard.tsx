@@ -9,17 +9,23 @@ import {
 import { Feather } from "@expo/vector-icons";
 
 interface CustomKeyboardProps {
+  is3day: boolean;
   onKeyPress: (key: string) => void;
 }
 
-const CustomKeyboard: React.FC<CustomKeyboardProps> = ({ onKeyPress }) => {
-  const keys = [
-    ["1", "2", "3"],
-    ["4", "5", "6"],
-    ["7", "8", "9"],
-    ["M", "10", "10X"],
-    ["DEL"],
-  ];
+const CustomKeyboard: React.FC<CustomKeyboardProps> = ({
+  onKeyPress,
+  is3day,
+}) => {
+  const keys = is3day
+    ? [["5", "6"], ["7", "8", "9"], ["M", "10", "10X"], ["DEL"]]
+    : [
+        ["1", "2", "3"],
+        ["4", "5", "6"],
+        ["7", "8", "9"],
+        ["M", "10", "10X"],
+        ["DEL"],
+      ];
 
   return (
     <View style={styles.keyboardContainer}>

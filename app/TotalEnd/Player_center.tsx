@@ -8,59 +8,125 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import CustomKeyboard from "./CustomKeyboard";
 import { Player } from "../ListPlayers";
-import { usePlayersQuery } from "../LoginApi";
+import {
+  IPlayerScore,
+  IScore,
+  useChamDiemMutation,
+  usePlayersQuery,
+} from "../LoginApi";
 import { useAppSelector } from "@/store";
 import { router } from "expo-router";
-import { Button } from "react-native-paper";
+import { Button, MD3Colors, ProgressBar } from "react-native-paper";
+import { CompetitionType } from "@/constants";
+
+const initScore = {
+  time1: [0, 0, 0, 0, 0, 0],
+  time2: [0, 0, 0, 0, 0, 0],
+  time3: [0, 0, 0, 0, 0, 0],
+  time4: [0, 0, 0, 0, 0, 0],
+  time5: [0, 0, 0, 0, 0, 0],
+  time6: [0, 0, 0, 0, 0, 0],
+  time7: [0, 0, 0, 0, 0, 0],
+  time8: [0, 0, 0, 0, 0, 0],
+  time9: [0, 0, 0, 0, 0, 0],
+  time10: [0, 0, 0, 0, 0, 0],
+  time11: [0, 0, 0, 0, 0, 0],
+  time12: [0, 0, 0, 0, 0, 0],
+};
 
 const Player_center = () => {
+  const route = useRoute<RouteProp<{ params: Player }>>();
+
+  const { Id, playerId, FirstName, LastName } = route.params;
+
   const token = useAppSelector((state) => state.app.token);
+  const type = useAppSelector((state) => state.app.type);
+  const competitionName = useAppSelector((state) => state.app.competitionName);
+
+  const COL_NUM = useMemo(() => {
+    if (
+      type === CompetitionType.GROUP &&
+      competitionName.includes("Đấu loại")
+    ) {
+      return 3;
+    }
+    return 6;
+  }, [type]);
+
+  const ROW_NUM = useMemo(() => {
+    if (type === CompetitionType.GROUP) {
+      if (competitionName.includes("Đấu loại")) {
+        return 5;
+      }
+      return 4;
+    }
+    if (
+      type === CompetitionType.ALL_ROUND_1 ||
+      type === CompetitionType.ALL_ROUND_3
+    ) {
+      return 12;
+    }
+    return 6;
+  }, [type]);
 
   const res = usePlayersQuery(token, { skip: !token });
+  const [chamDiem, { isLoading }] = useChamDiemMutation();
   const players = (res.data?.data?.players || []) as Player[];
-  const route = useRoute<RouteProp<{ params: Player }>>();
-  const { Id, playerId, FirstName, LastName } = route.params;
-  const [ArrayScoreNew, setArrayScoreNew] = useState<string[]>([]);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const inputRefs = useRef<(TextInput | null)[][]>([]);
 
-  const [rows, setRows] = useState(
-    Array.from({ length: 12 }, (_, k) => ({
-      inputs: Array(6).fill(""),
-      name: `Time${k + 1}`,
-      end: 0,
-      total: 0,
-    }))
-  );
+  const playersScores = (res.data?.data?.scores || []) as IPlayerScore[];
+
+  const [scores, setScores] = useState<IScore>({
+    ...initScore,
+  });
+
+  useEffect(() => {
+    const playerScore = playersScores.find(
+      (playerScore) =>
+        Number(playerScore.comPlayerId) === Number(Id) &&
+        Number(playerScore.playerId) === Number(playerId)
+    );
+
+    const newScores: IScore = {
+      ...initScore,
+    };
+    for (const key in newScores) {
+      const k = key as keyof IScore;
+      newScores[k] = Array.from({ length: COL_NUM }).map(
+        (_, i) => playerScore?.scores[k]?.[i] || 0
+      );
+    }
+
+    setScores(newScores);
+  }, [JSON.stringify(playersScores), playerId, Id]);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+
   const [activeInput, setActiveInput] = useState<{
-    rowIndex: number;
+    row: string;
     colIndex: number;
   } | null>(null);
+
   useEffect(() => {
     // Focus vào ô trống đầu tiên khi trang vừa được mở
     const firstEmptyCell = findFirstEmptyCell();
     if (firstEmptyCell) {
-      const { rowIndex, colIndex } = firstEmptyCell;
-      setActiveInput({ rowIndex, colIndex });
-      focusInput(rowIndex, colIndex);
+      const { row, colIndex } = firstEmptyCell;
+      setActiveInput({ row, colIndex });
+      focusInput(row, colIndex);
     }
   }, []);
 
   // Hàm tìm ô trống đầu tiên trong bảng
   const findFirstEmptyCell = () => {
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      for (
-        let colIndex = 0;
-        colIndex < rows[rowIndex].inputs.length;
-        colIndex++
-      ) {
-        if (rows[rowIndex].inputs[colIndex] === "") {
-          return { rowIndex, colIndex };
+    for (let rowIndex = 0; rowIndex < Object.keys(scores).length; rowIndex++) {
+      const rowKey = Object.keys(scores)[rowIndex] as keyof IScore;
+      for (let colIndex = 0; colIndex < scores[rowKey].length; colIndex++) {
+        if (scores[rowKey][colIndex] === 0) {
+          return { row: rowKey, colIndex };
         }
       }
     }
@@ -68,11 +134,10 @@ const Player_center = () => {
   };
 
   // Hàm focus vào ô tương ứng nếu tồn tại ref
-  const focusInput = (rowIndex: number, colIndex: number) => {
-    const input = inputRefs.current[rowIndex]?.[colIndex];
-    if (input) {
-      input.focus(); // Đảm bảo ô đó có ref trước khi gọi focus
-      scrollToRow(rowIndex);
+  const focusInput = (row: keyof IScore, colIndex: number) => {
+    const index = Object.keys(scores).findIndex((key) => key === row);
+    if (index) {
+      scrollToRow(index);
     }
   };
 
@@ -87,56 +152,39 @@ const Player_center = () => {
 
   const handleInputChange = (
     value: string,
-    rowIndex: number,
+    row: keyof IScore,
     colIndex: number
   ) => {
-    const newRows = [...rows];
-    newRows[rowIndex].inputs[colIndex] = value;
-
-    // Tính toán giá trị End cho hàng hiện tại
-    newRows[rowIndex].end = calculateEndForRow(newRows[rowIndex].inputs);
-
-    // Tính toán giá trị Total cho hàng hiện tại
-    newRows[rowIndex].total = calculateTotalForRow(rowIndex, newRows);
-
-    setRows(newRows);
-    const updatedRow = newRows[rowIndex];
-    if (updatedRow.inputs.some((val) => val !== "")) {
-      setArrayScoreNew(updatedRow.inputs);
-      console.log(`Updated row ${rowIndex}:`, updatedRow);
-    }
-
-    if (value !== "" && colIndex < 5) {
-      setActiveInput({ rowIndex, colIndex: colIndex + 1 });
-    } else if (value !== "" && colIndex === 5 && rowIndex < 3) {
-      setActiveInput({ rowIndex: rowIndex + 1, colIndex: 0 });
+    if (colIndex <= COL_NUM) {
+      const newScores = { ...scores };
+      newScores[row][colIndex] = value;
+      setScores(newScores);
     }
   };
 
   const handleKeyPress = (key: string) => {
     if (activeInput) {
-      const { rowIndex, colIndex } = activeInput;
+      const { row, colIndex } = activeInput;
 
       if (key === "DEL") {
-        handleInputChange("", rowIndex, colIndex);
+        handleInputChange("", row as keyof IScore, colIndex);
       } else {
-        handleInputChange(key, rowIndex, colIndex);
+        handleInputChange(key, row as keyof IScore, colIndex);
       }
 
       if (key !== "DEL") {
-        if (colIndex < 5) {
-          setActiveInput({ rowIndex, colIndex: colIndex + 1 });
-        } else if (rowIndex < 11) {
-          setActiveInput({ rowIndex: rowIndex + 1, colIndex: 0 });
+        if (colIndex < COL_NUM - 1) {
+          setActiveInput({ row, colIndex: colIndex + 1 });
         } else {
-          setActiveInput(null);
+          nextPlayer();
+          const nextRow =
+            Object.keys(scores)[
+              Object.keys(scores).findIndex((key) => key === row) + 1
+            ];
+          setActiveInput({ row: nextRow, colIndex: 0 });
         }
       }
     }
-  };
-
-  const calculateEndForRow = (inputs: string[]) => {
-    return inputs.reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
   };
 
   const calculateTotalForRow = (rowIndex: number, rowsData: any[]): number => {
@@ -159,7 +207,13 @@ const Player_center = () => {
     [JSON.stringify(players), Id, playerId]
   );
 
-  const prevPlayer = () => {
+  const prevPlayer = async () => {
+    await chamDiem({
+      scores,
+      id: Number(Id),
+      playerId: Number(playerId),
+      token: token,
+    });
     if (currentIndex > 0) {
       const prevPlayer = players[currentIndex - 1];
       if (prevPlayer) {
@@ -170,7 +224,13 @@ const Player_center = () => {
       }
     }
   };
-  const nextPlayer = () => {
+  const nextPlayer = async () => {
+    await chamDiem({
+      scores,
+      id: Number(Id),
+      playerId: Number(playerId),
+      token: token,
+    });
     if (currentIndex < players.length - 1) {
       const nextPlayer = players[currentIndex + 1];
       if (nextPlayer) {
@@ -180,6 +240,24 @@ const Player_center = () => {
         });
       }
     }
+  };
+
+  const getEnd = (key: keyof IScore): number => {
+    return scores[key].reduce((acc: number, curr) => {
+      const c = curr === "M" ? 0 : curr === "10X" ? 10 : curr;
+      return Number(acc) + Number(c);
+    }, 0 as number);
+  };
+
+  const getCurrentRowTotalFromStart = (index: number) => {
+    let total = 0;
+
+    Object.keys(scores).forEach((k, i) => {
+      if (i <= index) {
+        total += getEnd(k as keyof IScore);
+      }
+    });
+    return total;
   };
 
   return (
@@ -193,9 +271,7 @@ const Player_center = () => {
           >
             Trước
           </Button>
-          <Text style={styles.title}>
-            {LastName + " " + FirstName} {currentIndex}
-          </Text>
+          <Text style={styles.title}>{LastName + " " + FirstName}</Text>
           <Button
             onPress={nextPlayer}
             icon={() => <AntDesign name="right" size={24} color="black" />}
@@ -205,56 +281,66 @@ const Player_center = () => {
             Sau
           </Button>
         </View>
+        <ProgressBar indeterminate={isLoading} color={MD3Colors.error50} />
+
         <ScrollView ref={scrollViewRef} style={styles.scrollView}>
           <View style={styles.player}>
             <View style={styles.view1list}>
-              <Text style={styles.columnHeader}></Text>
-              <Text style={styles.columnHeader}>1</Text>
-              <Text style={styles.columnHeader}>2</Text>
-              <Text style={styles.columnHeader}>3</Text>
-              <Text style={styles.columnHeader}>4</Text>
-              <Text style={styles.columnHeader}>5</Text>
-              <Text style={styles.columnHeader}>6</Text>
+              {Array.from({ length: COL_NUM }).map((_, i) => (
+                <Text key={i} style={styles.columnHeader}>
+                  {i + 1}
+                </Text>
+              ))}
               <Text style={styles.columnHeader}>End</Text>
               <Text style={styles.columnHeader}>Total</Text>
             </View>
 
-            {rows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.table}>
-                <Text style={styles.columnHeader}>{rowIndex + 1}</Text>
-                {row.inputs.map((inputValue, colIndex) => (
-                  <TouchableOpacity
-                    key={colIndex}
-                    onPress={() => setActiveInput({ rowIndex, colIndex })}
-                    style={styles.touchable}
-                  >
-                    <TextInput
-                      keyboardType="numeric"
-                      value={inputValue}
-                      onChangeText={(value) =>
-                        handleInputChange(value, rowIndex, colIndex)
-                      }
-                      onFocus={() => setActiveInput({ rowIndex, colIndex })}
-                      showSoftInputOnFocus={false}
-                      editable={true}
-                      style={[
-                        styles.input,
-                        activeInput?.rowIndex === rowIndex &&
-                        activeInput?.colIndex === colIndex
-                          ? styles.activeInput
-                          : {},
-                      ]}
-                    />
-                  </TouchableOpacity>
-                ))}
-                <Text style={styles.endText}>{row.end.toString()}</Text>
-                <Text style={styles.totalText}>{row.total.toString()}</Text>
-              </View>
-            ))}
+            {Object.keys(scores).map((key, rowIndex) => {
+              const row = key as keyof IScore;
+              const end = getEnd(row);
+              const total = end ? getCurrentRowTotalFromStart(rowIndex) : 0;
+              if (rowIndex >= ROW_NUM) return null;
+              return (
+                <View key={rowIndex} style={styles.table}>
+                  <Text style={styles.columnHeader}>{rowIndex + 1}</Text>
+                  {scores[row].map((inputValue, colIndex) => (
+                    <TouchableOpacity
+                      key={colIndex}
+                      onPress={() => setActiveInput({ row, colIndex })}
+                      style={styles.touchable}
+                    >
+                      <TextInput
+                        value={String(inputValue)}
+                        onChangeText={(value) =>
+                          handleInputChange(value, row, colIndex)
+                        }
+                        onFocus={() => setActiveInput({ row, colIndex })}
+                        showSoftInputOnFocus={false}
+                        cursorColor={"transparent"}
+                        style={[
+                          styles.input,
+                          activeInput?.row === row &&
+                          activeInput?.colIndex === colIndex
+                            ? styles.activeInput
+                            : {},
+                          inputValue ? { backgroundColor: "#db91c5" } : {},
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  ))}
+
+                  <Text style={styles.endText}>{end}</Text>
+                  <Text style={styles.totalText}>{total}</Text>
+                </View>
+              );
+            })}
           </View>
         </ScrollView>
       </View>
-      <CustomKeyboard onKeyPress={handleKeyPress} />
+      <CustomKeyboard
+        onKeyPress={handleKeyPress}
+        is3day={competitionName.includes("3 dây")}
+      />
     </View>
   );
 };
@@ -293,19 +379,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   input: {
-    width: 30,
-    height: 30,
+    width: 34,
+    height: 34,
     textAlign: "center",
     paddingVertical: 0,
     paddingHorizontal: 0,
     margin: 0,
-    backgroundColor: "#db91c5",
     borderColor: "#7c7b7b",
     borderRadius: 5,
-    borderWidth: 2,
+    borderWidth: 3,
   },
   activeInput: {
-    borderColor: "#ff0000",
+    borderColor: "#f07b15",
   },
   table: {
     flexDirection: "row",

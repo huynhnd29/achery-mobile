@@ -4,7 +4,7 @@ import { Button, TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { router } from "expo-router";
-import { useAppSelector } from "@/store";
+import { setType, useAppDispatch, useAppSelector } from "@/store";
 import { usePlayersQuery } from "./LoginApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -13,13 +13,23 @@ export interface Player {
   FirstName: string;
   LastName: string;
   playerId: number;
+  CompetitionId: number;
 }
 
 const ListPlayers = () => {
   const token = useAppSelector((state) => state.app.token);
   const res = usePlayersQuery(token, { skip: !token });
+  console.log(
+    "🚀 ~ file: ListPlayers.tsx:21 ~ ListPlayers ~ res:",
+    res.data?.data?.competition?.CompetitionStandard
+  );
 
+  const dispatch = useAppDispatch();
   const players = (res.data?.data?.players || []) as Player[];
+  console.log(
+    "🚀 ~ file: ListPlayers.tsx:24 ~ ListPlayers ~ players:",
+    players
+  );
 
   const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(
     players[0]?.Id || null
@@ -30,6 +40,14 @@ const ListPlayers = () => {
       setExpandedPlayerId(players[0].Id);
     }
   }, [JSON.stringify(players)]);
+
+  useEffect(() => {
+    const type =
+      res.data?.data?.competition?.CompetitionStandard?.CompetitionTypeId;
+    if (type) {
+      dispatch(setType(type));
+    }
+  }, [res.data?.data?.competition?.CompetitionStandard?.CompetitionTypeId]);
 
   const toggleExpand = (id: number) => {
     setExpandedPlayerId(id);
@@ -60,10 +78,16 @@ const ListPlayers = () => {
             Đăng xuất
           </Button>
         </View>
+
         <View style={styles.lkt}>
-          <Text style={styles.text1}>LTK 2024</Text>
-          <Text style={{ paddingRight: 15 }}>Distance: 60m</Text>
+          <Text style={styles.text1}>
+            {res?.data?.data?.competition?.Tournaments?.Name}
+          </Text>
+          <Text style={{ paddingLeft: 15, fontSize: 12 }}>
+            {res?.data?.data?.competition?.CompetitionStandard?.Name}
+          </Text>
         </View>
+
         <View>
           <TextInput
             label="Tìm kiếm"
@@ -161,7 +185,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     backgroundColor: "#ddd",
     textAlign: "center",
-    flexDirection: "row",
     justifyContent: "space-between",
     padding: 6,
   },
@@ -235,7 +258,7 @@ const styles = StyleSheet.create({
   text1: {
     fontWeight: "bold",
     color: "#000",
-    fontSize: 16,
+    fontSize: 12,
     paddingLeft: 15,
   },
   input: {
