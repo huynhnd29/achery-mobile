@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Button, TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { router } from "expo-router";
 import { setType, useAppDispatch, useAppSelector } from "@/store";
-import { usePlayersQuery } from "./LoginApi";
+import { IPlayerScore, IScore, usePlayersQuery } from "./LoginApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CompetitionType } from "@/constants";
 
+const getEnd = (scores: Array<string | number>): number => {
+  return scores.reduce((acc: number, curr) => {
+    const c = curr === "M" ? 0 : curr === "10X" ? 10 : curr;
+    return Number(acc) + Number(c);
+  }, 0 as number);
+};
 export interface Player {
   Id: number;
   FirstName: string;
@@ -18,18 +25,16 @@ export interface Player {
 
 const ListPlayers = () => {
   const token = useAppSelector((state) => state.app.token);
+  const competitionName = useAppSelector((state) => state.app.competitionName);
+
+  const type = useAppSelector((state) => state.app.type);
+
   const res = usePlayersQuery(token, { skip: !token });
-  console.log(
-    "🚀 ~ file: ListPlayers.tsx:21 ~ ListPlayers ~ res:",
-    res.data?.data?.competition?.CompetitionStandard
-  );
 
   const dispatch = useAppDispatch();
   const players = (res.data?.data?.players || []) as Player[];
-  console.log(
-    "🚀 ~ file: ListPlayers.tsx:24 ~ ListPlayers ~ players:",
-    players
-  );
+  
+  const playersScores = (res.data?.data?.scores || []) as IPlayerScore[];
 
   const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(
     players[0]?.Id || null
@@ -64,15 +69,59 @@ const ListPlayers = () => {
       });
     }
   };
+
+  const findFinalRowScoreOfPlayer = (comPlayerId: number, playerId: number) => {
+    const playerScore = playersScores.find(
+      (playerScore) =>
+        Number(playerScore.comPlayerId) === Number(comPlayerId) &&
+        Number(playerScore.playerId) === Number(playerId)
+    );
+
+    let time = 0;
+    let score: Array<number | string> = [];
+    playerScore?.scores
+      ? Object.entries(playerScore.scores).reduce(
+          (acc, [key, value], index) => {
+            if (Array.isArray(value) && value.some((v) => v !== 0)) {
+              time = index + 1;
+              score = value;
+              return { [key]: value };
+            }
+            return acc;
+          },
+          {}
+        )
+      : {};
+
+    const end = getEnd(score);
+
+    let total = 0;
+
+    if (playerScore?.scores) {
+      Object.keys(playerScore?.scores || []).forEach((k, i) => {
+        if (i <= time - 1) {
+          total += getEnd(playerScore?.scores[k as keyof IScore]);
+        }
+      });
+    }
+
+    return {
+      time: time,
+      score,
+      end,
+      total,
+    };
+  };
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.container}>
       <View>
         <View style={styles.header}>
           <Text style={styles.title}>Danh sách thí sinh</Text>
           <Button
             onPress={() => {
-              AsyncStorage.clear();
-              router.push({ pathname: "/" });
+              AsyncStorage.clear().then(() => {
+                router.push({ pathname: "/" });
+              });
             }}
           >
             Đăng xuất
@@ -102,57 +151,67 @@ const ListPlayers = () => {
             }
           />
         </View>
-        <View style={styles.list}>
-          {players.map((player) => (
-            <TouchableOpacity
-              key={player.playerId}
-              onPress={() => handleClick(player.Id, player.playerId)}
-            >
-              <View style={styles.player}>
-                <TouchableOpacity
-                  style={styles.view1list}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    toggleExpand(player.Id);
-                  }}
-                >
-                  <Text style={styles.title2}>
-                    {player.LastName + " " + player.FirstName}
-                  </Text>
-                </TouchableOpacity>
-                {expandedPlayerId === player.Id && (
-                  <>
-                    <View style={styles.cay}>
-                      <View style={styles.view2list}>
-                        <Text style={styles.columnHeader}>1</Text>
-                        <Text style={styles.columnHeader}>2</Text>
-                        <Text style={styles.columnHeader}>3</Text>
-                        <Text style={styles.columnHeader}>4</Text>
-                        <Text style={styles.columnHeader}>5</Text>
-                        <Text style={styles.columnHeader}>6</Text>
-                        <Text style={styles.endColumn}>End</Text>
-                        <Text style={styles.totalColumn}>Total</Text>
+        <ScrollView style={styles.list}>
+          {players.map((player) => {
+            const COL_NUM =
+              type === CompetitionType.GROUP &&
+              competitionName.includes("Đấu loại")
+                ? 3
+                : 6;
+            const row = findFinalRowScoreOfPlayer(player.Id, player.playerId);
+
+            return (
+              <TouchableOpacity
+                key={player.playerId + player.Id + player.CompetitionId}
+                onPress={() => handleClick(player.Id, player.playerId)}
+              >
+                <Text>{player.playerId + player.Id}</Text>
+                <View style={styles.player}>
+                  <TouchableOpacity
+                    style={styles.view1list}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleExpand(player.Id);
+                    }}
+                  >
+                    <Text style={styles.title2}>
+                      {player.LastName + " " + player.FirstName}
+                    </Text>
+                  </TouchableOpacity>
+                  {expandedPlayerId === player.Id && (
+                    <>
+                      <View style={styles.cay}>
+                        <View style={styles.view2list}>
+                          <Text style={styles.columnHeader}></Text>
+                          {Array.from({ length: COL_NUM }).map((_, i) => (
+                            <Text key={i} style={styles.columnHeader}>
+                              {i + 1}
+                            </Text>
+                          ))}
+                          <Text style={styles.endColumn}>End</Text>
+                          <Text style={styles.totalColumn}>Total</Text>
+                        </View>
                       </View>
-                    </View>
-                    <View style={styles.cay2}>
-                      <Text style={{ paddingRight: 20 }}>0</Text>
-                      <View style={styles.view3list}>
-                        <Text style={styles.column2Header}>0</Text>
-                        <Text style={styles.column2Header}>0</Text>
-                        <Text style={styles.column2Header}>0</Text>
-                        <Text style={styles.column2Header}>0</Text>
-                        <Text style={styles.column2Header}>0</Text>
-                        <Text style={styles.column2Header}>0</Text>
-                        <Text style={styles.endColumn}>0</Text>
-                        <Text style={styles.totalColumn}>0</Text>
+                      <View style={styles.cay2}>
+                        <Text style={{ paddingRight: 20 }}>{row.time}</Text>
+                        <View style={styles.view3list}>
+                          {Array.from({ length: COL_NUM }).map((_, i) => (
+                            <Text key={i} style={styles.column2Header}>
+                              {row.score[i] || 0}
+                            </Text>
+                          ))}
+
+                          <Text style={styles.endColumn}>{row.end}</Text>
+                          <Text style={styles.totalColumn}>{row.total}</Text>
+                        </View>
                       </View>
-                    </View>
-                  </>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -220,7 +279,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ddd",
     // textAlign: "center",
     flexDirection: "row",
-    width: "80%",
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -229,7 +288,7 @@ const styles = StyleSheet.create({
     // textAlign: "center",
     flexDirection: "row",
     justifyContent: "flex-end",
-    width: "80%",
+    width: "90%",
   },
   cay: {
     backgroundColor: "#ddd",
@@ -279,6 +338,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   list: {
+    height: "70%",
     marginTop: 10,
     paddingRight: 12,
     gap: 15,

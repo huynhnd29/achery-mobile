@@ -27,7 +27,7 @@ const Login = () => {
           );
         }
 
-        router.push({ pathname: "/ListPlayers" });
+        router.push("/ListPlayers");
       } catch (err) {
         console.error("Error:", err);
       }
@@ -40,7 +40,7 @@ const Login = () => {
     AsyncStorage.getItem("token").then((token) => {
       if (token) {
         dispatch(setToken(token));
-        router.push({ pathname: "/ListPlayers" });
+        router.push("/ListPlayers");
       }
     });
   }, []);
@@ -83,7 +83,7 @@ const Login = () => {
           mode="contained"
           style={styles.button}
           labelStyle={styles.text}
-          onPress={() => router.push({ pathname: "/barCode" })}
+          onPress={() => router.push("/barCode")}
           loading={isLoading}
         >
           Quét QR Code

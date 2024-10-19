@@ -19,8 +19,12 @@ export default function App() {
   useEffect(() => {
     AsyncStorage.getItem("token").then((token) => {
       if (token) {
+        console.log(
+          "🚀 ~ file: barCode.tsx:22 ~ AsyncStorage.getItem ~ token:",
+          token
+        );
         dispatch(setToken(token));
-        router.push({ pathname: "/ListPlayers" });
+        router.push("/ListPlayers");
       }
     });
   }, []);
@@ -49,7 +53,7 @@ export default function App() {
           response
         );
       }
-      router.push({ pathname: "/ListPlayers" });
+      router.push("/ListPlayers");
     } catch (err) {
       console.error("Error:", err);
     } finally {
