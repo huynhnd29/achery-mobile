@@ -1,5 +1,5 @@
 // Player_center.tsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,25 +10,29 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { useEvent } from "../eventContext";
+import AntDesign from "@expo/vector-icons/AntDesign";
 import CustomKeyboard from "./CustomKeyboard";
-
-type RouteParams = {
-  playerName: string;
-  eventName: string;
-};
+import { Player } from "../ListPlayers";
+import { usePlayersQuery } from "../LoginApi";
+import { useAppSelector } from "@/store";
+import { router } from "expo-router";
+import { Button } from "react-native-paper";
 
 const Player_center = () => {
-  const route = useRoute<RouteProp<{ params: RouteParams }>>();
-  const { eventName } = useEvent();
-  const { playerName } = route.params;
+  const token = useAppSelector((state) => state.app.token);
+
+  const res = usePlayersQuery(token, { skip: !token });
+  const players = (res.data?.data?.players || []) as Player[];
+  const route = useRoute<RouteProp<{ params: Player }>>();
+  const { Id, playerId, FirstName, LastName } = route.params;
   const [ArrayScoreNew, setArrayScoreNew] = useState<string[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRefs = useRef<(TextInput | null)[][]>([]);
 
   const [rows, setRows] = useState(
-    Array.from({ length: 12 }, () => ({
+    Array.from({ length: 12 }, (_, k) => ({
       inputs: Array(6).fill(""),
+      name: `Time${k + 1}`,
       end: 0,
       total: 0,
     }))
@@ -145,19 +149,66 @@ const Player_center = () => {
     const previousTotal = calculateTotalForRow(rowIndex - 1, rowsData);
     return currentEnd + previousTotal;
   };
+  const currentIndex = useMemo(
+    () =>
+      players.findIndex(
+        (player) =>
+          Number(player.Id) === Number(Id) &&
+          Number(player.playerId) === Number(playerId)
+      ),
+    [JSON.stringify(players), Id, playerId]
+  );
+
+  const prevPlayer = () => {
+    if (currentIndex > 0) {
+      const prevPlayer = players[currentIndex - 1];
+      if (prevPlayer) {
+        router.push({
+          pathname: "/TotalEnd/Player_center",
+          params: { ...prevPlayer },
+        });
+      }
+    }
+  };
+  const nextPlayer = () => {
+    if (currentIndex < players.length - 1) {
+      const nextPlayer = players[currentIndex + 1];
+      if (nextPlayer) {
+        router.push({
+          pathname: "/TotalEnd/Player_center",
+          params: { ...nextPlayer },
+        });
+      }
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View>
+    <View style={styles.container}>
+      <View style={{ flex: 1 }}>
         <View style={styles.header}>
-          <Text style={styles.title}>{playerName}</Text>
-        </View>
-        <View>
-          <Text style={styles.title2}>{eventName}</Text>
+          <Button
+            icon={() => <AntDesign name="left" size={24} color="black" />}
+            onPress={prevPlayer}
+            disabled={currentIndex <= 0}
+          >
+            Trước
+          </Button>
+          <Text style={styles.title}>
+            {LastName + " " + FirstName} {currentIndex}
+          </Text>
+          <Button
+            onPress={nextPlayer}
+            icon={() => <AntDesign name="right" size={24} color="black" />}
+            disabled={currentIndex >= players.length - 1}
+            contentStyle={{ flexDirection: "row-reverse" }}
+          >
+            Sau
+          </Button>
         </View>
         <ScrollView ref={scrollViewRef} style={styles.scrollView}>
           <View style={styles.player}>
             <View style={styles.view1list}>
+              <Text style={styles.columnHeader}></Text>
               <Text style={styles.columnHeader}>1</Text>
               <Text style={styles.columnHeader}>2</Text>
               <Text style={styles.columnHeader}>3</Text>
@@ -170,6 +221,7 @@ const Player_center = () => {
 
             {rows.map((row, rowIndex) => (
               <View key={rowIndex} style={styles.table}>
+                <Text style={styles.columnHeader}>{rowIndex + 1}</Text>
                 {row.inputs.map((inputValue, colIndex) => (
                   <TouchableOpacity
                     key={colIndex}
@@ -203,7 +255,7 @@ const Player_center = () => {
         </ScrollView>
       </View>
       <CustomKeyboard onKeyPress={handleKeyPress} />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -212,19 +264,23 @@ export default Player_center;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    justifyContent: "space-between",
+    // justifyContent: "space-sta",
+    alignContent: "flex-start",
+    padding: 0,
+    gap: 10,
   },
   header: {
     width: "100%",
+    margin: 0,
     backgroundColor: "#f7f7f7",
-    padding: 16,
+    paddingVertical: 16,
     borderBottomWidth: 2,
     borderBottomColor: "#ccc",
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   scrollView: {
-    height: 300,
     width: "100%",
   },
   player: {

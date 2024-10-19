@@ -16,7 +16,16 @@ export const LoginApi = createApi({
         },
       }),
     }),
+    players: builder.query({
+      query: (token: string) => ({
+        url: "players",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }),
+    }),
   }),
 });
 
-export const { useLoginMutation } = LoginApi;
+export const { useLoginMutation, usePlayersQuery } = LoginApi;

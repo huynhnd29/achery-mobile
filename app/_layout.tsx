@@ -1,5 +1,5 @@
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
@@ -8,6 +8,7 @@ import { Provider as PaperProvider } from "react-native-paper"; // Đổi tên P
 import { Provider as ReduxProvider } from "react-redux"; // Provider từ react-redux
 import { store } from "@/store";
 import { EventProvider } from "./eventContext";
+import { AntDesign } from "@expo/vector-icons";
 
 // Import EventProvider từ file EventContext.tsx
 
@@ -46,7 +47,18 @@ export default function RootLayout() {
             <Stack.Screen name="ListPlayers" options={{ headerShown: false }} />
             <Stack.Screen
               name="TotalEnd/Player_center"
-              options={{ headerShown: false }}
+              options={{
+                title: "Nhập điểm",
+                headerLeft: () => (
+                  <AntDesign
+                    onPress={() => router.push("/ListPlayers")}
+                    name="arrowleft"
+                    size={24}
+                    color="black"
+                    style={{ marginRight: 10 }}
+                  />
+                ),
+              }}
             />
             <Stack.Screen
               name="TotalEnd/CustomKeyboard"

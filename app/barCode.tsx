@@ -2,17 +2,28 @@ import React, { useState, useEffect } from "react";
 import { Text, View, StyleSheet, Alert } from "react-native";
 import { CameraView, Camera } from "expo-camera";
 import { BarCodeScanningResult } from "expo-camera/build/legacy/Camera.types";
-import { Dialog, TextInput, Button } from "react-native-paper";
+import { Button } from "react-native-paper";
 import { useLoginMutation } from "./LoginApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { setToken, useAppDispatch } from "@/store";
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState(false);
   const [scanned, setScanned] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [name, setName] = useState("");
-  const [qrData, setQrData] = useState("");
+  const router = useRouter();
+
   const [login] = useLoginMutation();
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    AsyncStorage.getItem("token").then((token) => {
+      if (token) {
+        dispatch(setToken(token));
+        router.push({ pathname: "/ListPlayers" });
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const getCameraPermissions = async () => {
@@ -23,37 +34,26 @@ export default function App() {
     getCameraPermissions();
   }, []);
 
-  const handleBarcodeScanned = ({ type, data }: BarCodeScanningResult) => {
+  const handleBarcodeScanned = async ({ data }: BarCodeScanningResult) => {
     setScanned(true);
-    setQrData(data);
-    setModalVisible(true); // Show the popup to input the name
-  };
-  const handleApiCall = async () => {
-    if (qrData && name) {
-      // Call your API with the qrData and name
-      console.log("Calling API with QR data:", qrData, "and name:", name);
 
-      try {
-        const response = await login({ code: qrData, name });
-        if (response.data) {
-          AsyncStorage.setItem("token", response.data.token);
-        } else {
-          console.log(
-            "🚀 ~ file: index.tsx:26 ~ handleLogin ~ response:",
-            response
-          );
-        }
-      } catch (err) {
-        console.error("Error:", err);
-      } finally {
-        // Reset
-        setModalVisible(false);
-        setScanned(false);
-        setName("");
-        setQrData("");
+    try {
+      const response = await login({ code: data });
+      if (response.data) {
+        dispatch(setToken(response.data.token));
+
+        AsyncStorage.setItem("token", response.data.token);
+      } else {
+        console.log(
+          "🚀 ~ file: index.tsx:26 ~ handleLogin ~ response:",
+          response
+        );
       }
-    } else {
-      Alert.alert("Error", "Please enter a valid name.");
+      router.push({ pathname: "/ListPlayers" });
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setScanned(false);
     }
   };
 
@@ -76,27 +76,6 @@ export default function App() {
       {scanned && (
         <Button onPress={() => setScanned(false)}>Quét lại QR</Button>
       )}
-      <Dialog visible={modalVisible} onDismiss={() => setModalVisible(false)}>
-        <Dialog.Title>Nhập tên giám khảo</Dialog.Title>
-
-        <Dialog.Content>
-          <TextInput
-            placeholder="Nhập tên"
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-          />
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button
-            onPress={handleApiCall}
-            style={styles.button_popup}
-            labelStyle={styles.text}
-          >
-            Xác nhận
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
     </View>
   );
 }

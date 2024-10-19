@@ -1,43 +1,50 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Image, StyleSheet } from "react-native";
 import { Button, TextInput, Text, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLoginMutation } from "./LoginApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setToken, useAppDispatch } from "@/store";
 const Login = () => {
   const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [isNamePopupVisible, setIsNamePopupVisible] = useState(false);
   const [login, { isLoading, error }] = useLoginMutation();
   const router = useRouter();
 
-  const handleCodeSubmit = () => {
+  const dispatch = useAppDispatch();
+
+  const handleCodeSubmit = async () => {
     if (code.trim()) {
-      setIsNamePopupVisible(true);
+      try {
+        const response = await login({ code: code.trim() });
+        if (response.data) {
+          dispatch(setToken(response.data.token));
+          AsyncStorage.setItem("token", response.data.token);
+        } else {
+          console.log(
+            "🚀 ~ file: index.tsx:26 ~ handleLogin ~ response:",
+            response
+          );
+        }
+
+        router.push({ pathname: "/ListPlayers" });
+      } catch (err) {
+        console.error("Error:", err);
+      }
     } else {
       console.log("Code không được để trống");
     }
   };
 
-  const handleLogin = async () => {
-    try {
-      const response = await login({ code, name });
-      if (response.data) {
-        AsyncStorage.setItem("token", response.data.token);
-      } else {
-        console.log(
-          "🚀 ~ file: index.tsx:26 ~ handleLogin ~ response:",
-          response
-        );
+  useEffect(() => {
+    AsyncStorage.getItem("token").then((token) => {
+      if (token) {
+        dispatch(setToken(token));
+        router.push({ pathname: "/ListPlayers" });
       }
-    } catch (err) {
-      console.error("Error:", err);
-    } finally {
-      setIsNamePopupVisible(false);
-      router.push({ pathname: "/Competition_Content" });
-    }
-  };
+    });
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View>
@@ -58,7 +65,8 @@ const Login = () => {
         />
         {error && (
           <Text style={{ color: "red" }}>
-            Login failed. {String((error as any)?.data?.message) || "Please try again."}
+            Login failed.{" "}
+            {String((error as any)?.data?.message) || "Please try again."}
           </Text>
         )}
         <Button
@@ -81,33 +89,6 @@ const Login = () => {
           Quét QR Code
         </Button>
       </View>
-
-      <Portal>
-        <Dialog
-          visible={isNamePopupVisible}
-          onDismiss={() => setIsNamePopupVisible(false)}
-        >
-          <Dialog.Title>Nhập tên giám khảo</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              placeholder="Nhập tên của giám khảo"
-              mode="outlined"
-              value={name}
-              onChangeText={setName}
-              style={styles.input}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button
-              style={styles.button_popup}
-              labelStyle={styles.text}
-              onPress={handleLogin}
-            >
-              Xác nhận
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </SafeAreaView>
   );
 };

@@ -1,31 +1,64 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { TextInput } from "react-native-paper";
+import { Button, TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { router } from "expo-router";
-interface ListPlayersProps {
-  ArrayScoreNew: string[];
-}
-const ListPlayers: React.FC<ListPlayersProps> = ({ ArrayScoreNew }) => {
-  const name = ["Nguyễn Văn A", "Nguyễn Văn B", "Nguyễn Văn C", "Nguyễn Văn D"];
+import { useAppSelector } from "@/store";
+import { usePlayersQuery } from "./LoginApi";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-  const [playerId, setPlayerId] = useState<number | null>(null);
+export interface Player {
+  Id: number;
+  FirstName: string;
+  LastName: string;
+  playerId: number;
+}
+
+const ListPlayers = () => {
+  const token = useAppSelector((state) => state.app.token);
+  const res = usePlayersQuery(token, { skip: !token });
+
+  const players = (res.data?.data?.players || []) as Player[];
+
+  const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(
+    players[0]?.Id || null
+  );
+
+  useEffect(() => {
+    if (players.length > 0) {
+      setExpandedPlayerId(players[0].Id);
+    }
+  }, [JSON.stringify(players)]);
+
   const toggleExpand = (id: number) => {
-    setPlayerId(playerId === id ? null : id);
+    setExpandedPlayerId(id);
   };
-  const handleClick = (playerName: string) => {
-    router.push({
-      pathname: "/TotalEnd/Player_center",
-      params: { playerName },
-    });
+  const handleClick = (id: number, playerId: number) => {
+    const player = players.find(
+      (player) => player.Id === id && player.playerId === playerId
+    );
+
+    if (player) {
+      router.push({
+        pathname: "/TotalEnd/Player_center",
+        params: { ...player },
+      });
+    }
   };
-  const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(null);
   return (
     <SafeAreaView>
       <View>
         <View style={styles.header}>
           <Text style={styles.title}>Danh sách thí sinh</Text>
+          <Button
+            onPress={() => {
+              AsyncStorage.clear();
+              router.push({ pathname: "/" });
+            }}
+          >
+            Đăng xuất
+          </Button>
         </View>
         <View style={styles.lkt}>
           <Text style={styles.text1}>LTK 2024</Text>
@@ -46,47 +79,54 @@ const ListPlayers: React.FC<ListPlayersProps> = ({ ArrayScoreNew }) => {
           />
         </View>
         <View style={styles.list}>
-          {name.map((playerName, index) => (
-            <View key={index} style={styles.player}>
-              <TouchableOpacity
-                style={styles.view1list}
-                onPress={() => {
-                  toggleExpand(index);
-                  handleClick(playerName);
-                }}
-              >
-                <Text style={styles.title2}>{playerName}</Text>
-              </TouchableOpacity>
-              {expandedPlayerId === playerId && (
-                <>
-                  <View style={styles.cay}>
-                    <View style={styles.view2list}>
-                      <Text style={styles.columnHeader}>1</Text>
-                      <Text style={styles.columnHeader}>2</Text>
-                      <Text style={styles.columnHeader}>3</Text>
-                      <Text style={styles.columnHeader}>4</Text>
-                      <Text style={styles.columnHeader}>5</Text>
-                      <Text style={styles.columnHeader}>6</Text>
-                      <Text style={styles.endColumn}>end</Text>
-                      <Text style={styles.totalColumn}>total</Text>
+          {players.map((player) => (
+            <TouchableOpacity
+              key={player.playerId}
+              onPress={() => handleClick(player.Id, player.playerId)}
+            >
+              <View style={styles.player}>
+                <TouchableOpacity
+                  style={styles.view1list}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    toggleExpand(player.Id);
+                  }}
+                >
+                  <Text style={styles.title2}>
+                    {player.LastName + " " + player.FirstName}
+                  </Text>
+                </TouchableOpacity>
+                {expandedPlayerId === player.Id && (
+                  <>
+                    <View style={styles.cay}>
+                      <View style={styles.view2list}>
+                        <Text style={styles.columnHeader}>1</Text>
+                        <Text style={styles.columnHeader}>2</Text>
+                        <Text style={styles.columnHeader}>3</Text>
+                        <Text style={styles.columnHeader}>4</Text>
+                        <Text style={styles.columnHeader}>5</Text>
+                        <Text style={styles.columnHeader}>6</Text>
+                        <Text style={styles.endColumn}>End</Text>
+                        <Text style={styles.totalColumn}>Total</Text>
+                      </View>
                     </View>
-                  </View>
-                  <View style={styles.cay2}>
-                    <Text style={{ paddingRight: 20 }}>10</Text>
-                    <View style={styles.view3list}>
-                      <Text style={styles.column2Header}>10</Text>
-                      <Text style={styles.column2Header}>20</Text>
-                      <Text style={styles.column2Header}>30</Text>
-                      <Text style={styles.column2Header}>40</Text>
-                      <Text style={styles.column2Header}>50</Text>
-                      <Text style={styles.column2Header}>60</Text>
-                      <Text style={styles.endColumn}>70</Text>
-                      <Text style={styles.totalColumn}>280</Text>
+                    <View style={styles.cay2}>
+                      <Text style={{ paddingRight: 20 }}>0</Text>
+                      <View style={styles.view3list}>
+                        <Text style={styles.column2Header}>0</Text>
+                        <Text style={styles.column2Header}>0</Text>
+                        <Text style={styles.column2Header}>0</Text>
+                        <Text style={styles.column2Header}>0</Text>
+                        <Text style={styles.column2Header}>0</Text>
+                        <Text style={styles.column2Header}>0</Text>
+                        <Text style={styles.endColumn}>0</Text>
+                        <Text style={styles.totalColumn}>0</Text>
+                      </View>
                     </View>
-                  </View>
-                </>
-              )}
-            </View>
+                  </>
+                )}
+              </View>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
@@ -102,6 +142,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "#ccc",
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   title: {
     fontSize: 24,
@@ -117,7 +159,7 @@ const styles = StyleSheet.create({
   lkt: {
     fontSize: 20,
     fontWeight: "bold",
-    backgroundColor: "#d9d9d9",
+    backgroundColor: "#ddd",
     textAlign: "center",
     flexDirection: "row",
     justifyContent: "space-between",
@@ -128,6 +170,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
     width: 10,
+    paddingLeft: 2,
+    borderRadius: 4,
   },
   column2Header: {
     flex: 1,
@@ -136,7 +180,9 @@ const styles = StyleSheet.create({
     marginRight: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#bfbdbd",
+    backgroundColor: "#ddd",
+    paddingLeft: 2,
+    borderRadius: 4,
   },
   view1list: {
     fontSize: 20,
@@ -146,11 +192,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 6,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#ccc",
   },
   view2list: {
-    backgroundColor: "#bfbdbd",
+    backgroundColor: "#ddd",
     // textAlign: "center",
     flexDirection: "row",
     width: "80%",
@@ -165,12 +209,12 @@ const styles = StyleSheet.create({
     width: "80%",
   },
   cay: {
-    backgroundColor: "#bfbdbd",
-    // textAlign: "center",
+    backgroundColor: "#ddd",
     flexDirection: "row",
     justifyContent: "flex-end",
     padding: 5,
     width: "100%",
+    borderRadius: 4,
   },
   cay2: {
     backgroundColor: "#ffffff",
