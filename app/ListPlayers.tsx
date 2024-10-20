@@ -10,7 +10,6 @@ import { CompetitionType } from "@/constants";
 import { FlashList } from "@shopify/flash-list";
 import { getEnd } from "@/utils";
 
-
 export interface Player {
   Id: number;
   FirstName: string;
@@ -172,7 +171,7 @@ const ListPlayers = () => {
                     <View style={styles.view3list}>
                       {Array.from({ length: COL_NUM }).map((_, i) => (
                         <Text key={i} style={styles.column2Header}>
-                          {row.score[i] || 0}
+                          {String(row.score[i] || 0).replace("10X", "X")}
                         </Text>
                       ))}
 

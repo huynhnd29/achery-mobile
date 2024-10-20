@@ -8,12 +8,14 @@ const ScoreRowNode = ({
   idx,
   values,
   total,
+  onItemPress,
 }: {
   isActiveRow: boolean;
   activeColIdx: number;
   idx: number;
   values: (number | string)[];
   total: number;
+  onItemPress?: (col: number) => void;
 }) => {
   const end = useMemo(() => getEnd(values), [values]);
   return (
@@ -35,6 +37,7 @@ const ScoreRowNode = ({
       {values.map((inputValue, colIndex) => (
         <TouchableOpacity
           key={colIndex}
+          onPress={() => onItemPress?.(colIndex)}
           style={[
             styles.columnCell,
             styles.columnCellInput,

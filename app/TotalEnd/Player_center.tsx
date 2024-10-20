@@ -1,8 +1,18 @@
 // Player_center.tsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import { FlashList } from "@shopify/flash-list";
+import { router } from "expo-router";
+import { Button, MD3Colors, ProgressBar } from "react-native-paper";
+import debounce from "lodash.debounce";
 import CustomKeyboard from "@/components/CustomKeyboard";
 import { Player } from "../ListPlayers";
 import {
@@ -12,10 +22,7 @@ import {
   usePlayersQuery,
 } from "../LoginApi";
 import { useAppSelector } from "@/store";
-import { router } from "expo-router";
-import { Button, MD3Colors, ProgressBar } from "react-native-paper";
 import { CompetitionType } from "@/constants";
-import { FlashList } from "@shopify/flash-list";
 import ScoreRow from "@/components/ScoreRow";
 import { getEnd } from "@/utils";
 
@@ -40,10 +47,12 @@ const Player_center = () => {
   const { Id, playerId, FirstName, LastName } = route.params;
 
   const token = useAppSelector((state) => state.app.token);
+  const res = usePlayersQuery(token, { skip: !token });
+
   const type = useAppSelector((state) => state.app.type);
   const competitionName = useAppSelector((state) => state.app.competitionName);
 
-  const [activeInput, setActiveInput] = useState<{
+  const activeInputRef = useRef<{
     row: string;
     colIndex: number;
   }>({ row: "time1", colIndex: 0 });
@@ -74,9 +83,11 @@ const Player_center = () => {
     return 6;
   }, [type, competitionName]);
 
-  const res = usePlayersQuery(token, { skip: !token });
   const [chamDiem, { isLoading }] = useChamDiemMutation();
-  const players = (res.data?.data?.players || []) as Player[];
+  const players = useMemo(
+    () => (res.data?.data?.players || []) as Player[],
+    [res.data]
+  );
 
   const playersScores = (res.data?.data?.scores || []) as IPlayerScore[];
 
@@ -156,25 +167,25 @@ const Player_center = () => {
   }, [chamDiem, scores, Id, playerId, token, currentIndex, players]);
 
   const handleKeyPress = useCallback(
-    (key: string) => {
-      if (activeInput) {
-        const { row, colIndex } = activeInput;
+    debounce((key: string) => {
+      if (activeInputRef.current) {
+        const { row, colIndex } = activeInputRef.current;
 
         handleInputChange(key, row as keyof IScore, colIndex);
         if (colIndex < COL_NUM - 1) {
-          setActiveInput({ row, colIndex: colIndex + 1 });
+          activeInputRef.current = { row, colIndex: colIndex + 1 };
         } else {
           nextPlayer().then(() => {
             const nextRow =
               Object.keys(scores)[
                 Object.keys(scores).findIndex((key) => key === row) + 1
               ];
-            setActiveInput({ row: nextRow, colIndex: 0 });
+            activeInputRef.current = { row: nextRow, colIndex: 0 };
           });
         }
       }
-    },
-    [COL_NUM, activeInput, handleInputChange, nextPlayer, scores]
+    }, 300),
+    [COL_NUM, handleInputChange, nextPlayer, scores]
   );
 
   const prevPlayer = async () => {
@@ -240,6 +251,7 @@ const Player_center = () => {
             <Text style={styles.columnHeader}>End</Text>
             <Text style={styles.columnHeader}>Total</Text>
           </View>
+          <Text>{JSON.stringify(activeInputRef.current)}</Text>
           <View style={{ flex: 1 }}>
             <FlashList
               data={Object.keys(scores).slice(0, ROW_NUM)}
@@ -247,11 +259,14 @@ const Player_center = () => {
               renderItem={({ item: row, index: rowIndex }) => {
                 return (
                   <ScoreRow
-                    activeColIdx={activeInput.colIndex}
-                    isActiveRow={row === activeInput.row}
+                    activeColIdx={activeInputRef.current.colIndex}
+                    isActiveRow={row === activeInputRef.current.row}
                     idx={rowIndex}
                     total={totals[rowIndex]}
                     values={scores[row as keyof IScore]}
+                    onItemPress={(itemIdx) =>
+                      (activeInputRef.current = { row, colIndex: itemIdx })
+                    }
                   />
                 );
               }}
