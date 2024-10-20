@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, Image, StyleSheet } from "react-native";
-import { Button, TextInput, Text, Dialog, Portal } from "react-native-paper";
+import { Button, TextInput, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLoginMutation } from "./LoginApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";

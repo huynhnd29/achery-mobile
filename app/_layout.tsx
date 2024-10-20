@@ -7,7 +7,6 @@ import "react-native-reanimated";
 import { Provider as PaperProvider } from "react-native-paper"; // Đổi tên Provider từ react-native-paper để không trùng
 import { Provider as ReduxProvider } from "react-redux"; // Provider từ react-redux
 import { store } from "@/store";
-import { EventProvider } from "./eventContext";
 import { AntDesign } from "@expo/vector-icons";
 
 // Import EventProvider từ file EventContext.tsx
@@ -32,40 +31,29 @@ export default function RootLayout() {
   return (
     <ReduxProvider store={store}>
       <PaperProvider theme={{ dark: false }}>
-        <EventProvider>
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="Competition_Content"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="barCode"
-              options={{ title: "Quét mã chấm thi" }}
-            />
-            <Stack.Screen name="EventDetail" options={{ headerShown: false }} />
-            <Stack.Screen name="ListPlayers" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="TotalEnd/Player_center"
-              options={{
-                title: "Nhập điểm",
-                headerLeft: () => (
-                  <AntDesign
-                    onPress={() => router.push("/ListPlayers")}
-                    name="arrowleft"
-                    size={24}
-                    color="black"
-                    style={{ marginRight: 10 }}
-                  />
-                ),
-              }}
-            />
-            <Stack.Screen
-              name="TotalEnd/CustomKeyboard"
-              options={{ headerShown: false }}
-            />
-          </Stack>
-        </EventProvider>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="barCode"
+            options={{ title: "Quét mã chấm thi" }}
+          />
+          <Stack.Screen name="ListPlayers" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="TotalEnd/Player_center"
+            options={{
+              title: "Nhập điểm",
+              headerLeft: () => (
+                <AntDesign
+                  onPress={() => router.push("/ListPlayers")}
+                  name="arrowleft"
+                  size={24}
+                  color="black"
+                  style={{ marginRight: 10 }}
+                />
+              ),
+            }}
+          />
+        </Stack>
       </PaperProvider>
     </ReduxProvider>
   );

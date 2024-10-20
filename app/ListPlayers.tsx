@@ -1,20 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import { Button, TextInput } from "react-native-paper";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Button } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AntDesign from "@expo/vector-icons/AntDesign";
 import { router } from "expo-router";
 import { setType, useAppDispatch, useAppSelector } from "@/store";
 import { IPlayerScore, IScore, usePlayersQuery } from "./LoginApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CompetitionType } from "@/constants";
+import { FlashList } from "@shopify/flash-list";
+import { getEnd } from "@/utils";
 
-const getEnd = (scores: Array<string | number>): number => {
-  return scores.reduce((acc: number, curr) => {
-    const c = curr === "M" ? 0 : curr === "10X" ? 10 : curr;
-    return Number(acc) + Number(c);
-  }, 0 as number);
-};
+
 export interface Player {
   Id: number;
   FirstName: string;
@@ -32,19 +28,13 @@ const ListPlayers = () => {
   const res = usePlayersQuery(token, { skip: !token });
 
   const dispatch = useAppDispatch();
-  const players = (res.data?.data?.players || []) as Player[];
-  
-  const playersScores = (res.data?.data?.scores || []) as IPlayerScore[];
-
-  const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(
-    players[0]?.Id || null
+  const players = useMemo(
+    () => (res.data?.data?.players || []) as Player[],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(res.data?.data?.players)]
   );
 
-  useEffect(() => {
-    if (players.length > 0) {
-      setExpandedPlayerId(players[0].Id);
-    }
-  }, [JSON.stringify(players)]);
+  const playersScores = (res.data?.data?.scores || []) as IPlayerScore[];
 
   useEffect(() => {
     const type =
@@ -52,23 +42,27 @@ const ListPlayers = () => {
     if (type) {
       dispatch(setType(type));
     }
-  }, [res.data?.data?.competition?.CompetitionStandard?.CompetitionTypeId]);
+  }, [
+    dispatch,
+    res.data?.data?.competition?.CompetitionStandard?.CompetitionTypeId,
+  ]);
 
-  const toggleExpand = (id: number) => {
-    setExpandedPlayerId(id);
-  };
-  const handleClick = (id: number, playerId: number) => {
-    const player = players.find(
-      (player) => player.Id === id && player.playerId === playerId
-    );
+  const handleClick = useCallback(
+    (id: number, playerId: number) => {
+      const player = players.find(
+        (player) => player.Id === id && player.playerId === playerId
+      );
 
-    if (player) {
-      router.push({
-        pathname: "/TotalEnd/Player_center",
-        params: { ...player },
-      });
-    }
-  };
+      if (player) {
+        router.push({
+          pathname: "/TotalEnd/Player_center",
+          params: { ...player },
+        });
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(players)]
+  );
 
   const findFinalRowScoreOfPlayer = (comPlayerId: number, playerId: number) => {
     const playerScore = playersScores.find(
@@ -112,47 +106,40 @@ const ListPlayers = () => {
       total,
     };
   };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View>
-        <View style={styles.header}>
-          <Text style={styles.title}>Danh sách thí sinh</Text>
-          <Button
-            onPress={() => {
-              AsyncStorage.clear().then(() => {
-                router.push({ pathname: "/" });
-              });
-            }}
-          >
-            Đăng xuất
-          </Button>
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.title}>Danh sách thí sinh</Text>
+        <Button
+          onPress={() => {
+            AsyncStorage.clear().then(() => {
+              router.push({ pathname: "/" });
+            });
+          }}
+        >
+          Đăng xuất
+        </Button>
+      </View>
 
-        <View style={styles.lkt}>
-          <Text style={styles.text1}>
-            {res?.data?.data?.competition?.Tournaments?.Name}
-          </Text>
-          <Text style={{ paddingLeft: 15, fontSize: 12 }}>
-            {res?.data?.data?.competition?.CompetitionStandard?.Name}
-          </Text>
-        </View>
+      <View style={styles.lkt}>
+        <Text style={styles.text1}>
+          {res?.data?.data?.competition?.Tournaments?.Name}
+        </Text>
+        <Text style={{ paddingLeft: 15, fontSize: 12 }}>
+          {res?.data?.data?.competition?.CompetitionStandard?.Name}
+        </Text>
+      </View>
 
-        <View>
-          <TextInput
-            label="Tìm kiếm"
-            mode="outlined"
-            style={styles.input}
-            left={
-              <TextInput.Icon
-                icon={() => (
-                  <AntDesign name="search1" size={24} color="black" />
-                )}
-              />
-            }
-          />
-        </View>
-        <ScrollView style={styles.list}>
-          {players.map((player) => {
+      <View style={{ flex: 1, padding: 16 }}>
+        <FlashList
+          data={players}
+          estimatedItemSize={10}
+          keyExtractor={(item) =>
+            String(item.playerId + item.Id + item.CompetitionId)
+          }
+          renderItem={(item) => {
+            const player = item.item;
             const COL_NUM =
               type === CompetitionType.GROUP &&
               competitionName.includes("Đấu loại")
@@ -162,56 +149,42 @@ const ListPlayers = () => {
 
             return (
               <TouchableOpacity
-                key={player.playerId + player.Id + player.CompetitionId}
                 onPress={() => handleClick(player.Id, player.playerId)}
               >
-                <Text>{player.playerId + player.Id}</Text>
                 <View style={styles.player}>
-                  <TouchableOpacity
-                    style={styles.view1list}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      toggleExpand(player.Id);
-                    }}
-                  >
-                    <Text style={styles.title2}>
-                      {player.LastName + " " + player.FirstName}
-                    </Text>
-                  </TouchableOpacity>
-                  {expandedPlayerId === player.Id && (
-                    <>
-                      <View style={styles.cay}>
-                        <View style={styles.view2list}>
-                          <Text style={styles.columnHeader}></Text>
-                          {Array.from({ length: COL_NUM }).map((_, i) => (
-                            <Text key={i} style={styles.columnHeader}>
-                              {i + 1}
-                            </Text>
-                          ))}
-                          <Text style={styles.endColumn}>End</Text>
-                          <Text style={styles.totalColumn}>Total</Text>
-                        </View>
-                      </View>
-                      <View style={styles.cay2}>
-                        <Text style={{ paddingRight: 20 }}>{row.time}</Text>
-                        <View style={styles.view3list}>
-                          {Array.from({ length: COL_NUM }).map((_, i) => (
-                            <Text key={i} style={styles.column2Header}>
-                              {row.score[i] || 0}
-                            </Text>
-                          ))}
+                  <Text style={styles.title2}>
+                    {player.LastName + " " + player.FirstName}
+                  </Text>
+                  <View style={styles.cay}>
+                    <View style={styles.view2list}>
+                      <Text style={styles.columnHeader}></Text>
+                      {Array.from({ length: COL_NUM }).map((_, i) => (
+                        <Text key={i} style={styles.columnHeader}>
+                          {i + 1}
+                        </Text>
+                      ))}
+                      <Text style={styles.endColumn}>End</Text>
+                      <Text style={styles.totalColumn}>Total</Text>
+                    </View>
+                  </View>
+                  <View style={styles.cay2}>
+                    <Text style={{ paddingRight: 20 }}>{row.time}</Text>
+                    <View style={styles.view3list}>
+                      {Array.from({ length: COL_NUM }).map((_, i) => (
+                        <Text key={i} style={styles.column2Header}>
+                          {row.score[i] || 0}
+                        </Text>
+                      ))}
 
-                          <Text style={styles.endColumn}>{row.end}</Text>
-                          <Text style={styles.totalColumn}>{row.total}</Text>
-                        </View>
-                      </View>
-                    </>
-                  )}
+                      <Text style={styles.endColumn}>{row.end}</Text>
+                      <Text style={styles.totalColumn}>{row.total}</Text>
+                    </View>
+                  </View>
                 </View>
               </TouchableOpacity>
             );
-          })}
-        </ScrollView>
+          }}
+        />
       </View>
     </SafeAreaView>
   );
