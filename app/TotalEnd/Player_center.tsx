@@ -52,7 +52,7 @@ const Player_center = () => {
   const type = useAppSelector((state) => state.app.type);
   const competitionName = useAppSelector((state) => state.app.competitionName);
 
-  const activeInputRef = useRef<{
+  const [activeInput, setActiveInput] = useState<{
     row: string;
     colIndex: number;
   }>({ row: "time1", colIndex: 0 });
@@ -168,24 +168,24 @@ const Player_center = () => {
 
   const handleKeyPress = useCallback(
     debounce((key: string) => {
-      if (activeInputRef.current) {
-        const { row, colIndex } = activeInputRef.current;
+      if (activeInput) {
+        const { row, colIndex } = activeInput;
 
         handleInputChange(key, row as keyof IScore, colIndex);
         if (colIndex < COL_NUM - 1) {
-          activeInputRef.current = { row, colIndex: colIndex + 1 };
+          setActiveInput((pre) => ({ ...pre, colIndex: pre.colIndex + 1 }));
         } else {
           nextPlayer().then(() => {
             const nextRow =
               Object.keys(scores)[
                 Object.keys(scores).findIndex((key) => key === row) + 1
               ];
-            activeInputRef.current = { row: nextRow, colIndex: 0 };
+            setActiveInput({ row: nextRow, colIndex: 0 });
           });
         }
       }
     }, 300),
-    [COL_NUM, handleInputChange, nextPlayer, scores]
+    [COL_NUM, handleInputChange, nextPlayer, scores, activeInput]
   );
 
   const prevPlayer = async () => {
@@ -251,7 +251,6 @@ const Player_center = () => {
             <Text style={styles.columnHeader}>End</Text>
             <Text style={styles.columnHeader}>Total</Text>
           </View>
-          <Text>{JSON.stringify(activeInputRef.current)}</Text>
           <View style={{ flex: 1 }}>
             <FlashList
               data={Object.keys(scores).slice(0, ROW_NUM)}
@@ -259,13 +258,13 @@ const Player_center = () => {
               renderItem={({ item: row, index: rowIndex }) => {
                 return (
                   <ScoreRow
-                    activeColIdx={activeInputRef.current.colIndex}
-                    isActiveRow={row === activeInputRef.current.row}
+                    activeColIdx={activeInput.colIndex}
+                    isActiveRow={row === activeInput.row}
                     idx={rowIndex}
                     total={totals[rowIndex]}
                     values={scores[row as keyof IScore]}
                     onItemPress={(itemIdx) =>
-                      (activeInputRef.current = { row, colIndex: itemIdx })
+                      setActiveInput({ row, colIndex: itemIdx })
                     }
                   />
                 );
