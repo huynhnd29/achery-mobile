@@ -16,6 +16,7 @@ export interface Player {
   LastName: string;
   playerId: number;
   CompetitionId: number;
+  Bia?: string;
 }
 
 const ListPlayers = () => {
@@ -151,9 +152,18 @@ const ListPlayers = () => {
                 onPress={() => handleClick(player.Id, player.playerId)}
               >
                 <View style={styles.player}>
-                  <Text style={styles.title2}>
-                    {player.LastName + " " + player.FirstName}
-                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text style={styles.title2}>
+                      {player.LastName + " " + player.FirstName}
+                    </Text>
+                    <Text style={styles.title2}>{player.Bia || ""}</Text>
+                  </View>
+
                   <View style={styles.cay}>
                     <View style={styles.view2list}>
                       <Text style={styles.columnHeader}></Text>

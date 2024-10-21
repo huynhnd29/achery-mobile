@@ -69,9 +69,9 @@ const Player_center = () => {
   const ROW_NUM = useMemo(() => {
     if (type === CompetitionType.GROUP) {
       if (competitionName.includes("Đấu loại")) {
-        return 5;
+        return 6;
       }
-      return 4;
+      return 5;
     }
     if (
       type === CompetitionType.ALL_ROUND_1 ||
