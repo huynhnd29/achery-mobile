@@ -30,6 +30,16 @@ const CustomKeyboardNode: React.FC<CustomKeyboardProps> = ({
     [is3day]
   );
 
+  const renderColorKeyboard = (key: string, rowIndex: number) => {
+    if (rowIndex === 0) return "#FEEC37";
+    if (rowIndex === 1) return "#ff3846";
+    if (key === "M") return "#313131";
+    if (rowIndex === 2) return "#0fb7ff";
+    if (rowIndex === 3) return "#0fb7ff";
+
+    return "";
+  };
+
   return (
     <View
       style={[styles.keyboardContainer, { display: hidden ? "none" : "flex" }]}
@@ -49,13 +59,7 @@ const CustomKeyboardNode: React.FC<CustomKeyboardProps> = ({
                     onKeyPress(key);
                     Vibration.vibrate(100);
                   }}
-                  buttonColor={
-                    key === "M"
-                      ? "#f00"
-                      : rowIndex === 0
-                      ? "#FEEC37"
-                      : undefined
-                  }
+                  buttonColor={renderColorKeyboard(key, rowIndex)}
                   labelStyle={[
                     styles.keyText,
                     {
