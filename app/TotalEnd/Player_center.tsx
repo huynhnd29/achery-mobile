@@ -4,7 +4,6 @@ import { View, Text, StyleSheet } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { FlashList } from "@shopify/flash-list";
-import { router } from "expo-router";
 import { Button, MD3Colors, ProgressBar } from "react-native-paper";
 import debounce from "lodash.debounce";
 import CustomKeyboard from "@/components/CustomKeyboard";
@@ -39,6 +38,12 @@ const Player_center = () => {
   const route = useRoute<RouteProp<{ params: Player }>>();
 
   const { Id, playerId, FirstName, LastName } = route.params;
+  const [currentPlayer, setCurrentPlayer] = useState({
+    Id: Id,
+    playerId: playerId,
+    FirstName: FirstName,
+    LastName: LastName,
+  });
 
   const token = useAppSelector((state) => state.app.token);
   const res = usePlayersQuery(token, { skip: !token });
@@ -97,8 +102,8 @@ const Player_center = () => {
   useEffect(() => {
     const playerScore = playersScores.find(
       (playerScore) =>
-        Number(playerScore.comPlayerId) === Number(Id) &&
-        Number(playerScore.playerId) === Number(playerId)
+        Number(playerScore.comPlayerId) === Number(currentPlayer.Id) &&
+        Number(playerScore.playerId) === Number(currentPlayer.playerId)
     );
 
     const newScores: IScore = {
@@ -120,7 +125,12 @@ const Player_center = () => {
       colIndex: newScores[nullInput].indexOf(0),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(playersScores), playerId, Id, COL_NUM]);
+  }, [
+    JSON.stringify(playersScores),
+    currentPlayer.playerId,
+    currentPlayer.Id,
+    COL_NUM,
+  ]);
 
   const handleInputChange = useCallback(
     (value: string, row: keyof IScore, colIndex: number) => {
@@ -136,40 +146,52 @@ const Player_center = () => {
     () =>
       players.findIndex(
         (player) =>
-          Number(player.Id) === Number(Id) &&
-          Number(player.playerId) === Number(playerId)
+          Number(player.Id) === Number(currentPlayer.Id) &&
+          Number(player.playerId) === Number(currentPlayer.playerId)
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(players), Id, playerId]
+    [JSON.stringify(players), currentPlayer.Id, currentPlayer.playerId]
   );
 
   const nextPlayer = useCallback(
     debounce(async () => {
       await chamDiem({
         scores,
-        id: Number(Id),
-        playerId: Number(playerId),
+        id: Number(currentPlayer.Id),
+        playerId: Number(currentPlayer.playerId),
         token: token,
       });
       if (currentIndex < players.length - 1) {
         const nextPlayer = players[currentIndex + 1];
         if (nextPlayer) {
-          router.push({
-            pathname: "/TotalEnd/Player_center",
-            params: { ...nextPlayer },
+          setCurrentPlayer({
+            Id: nextPlayer.Id,
+            playerId: nextPlayer.playerId,
+            FirstName: nextPlayer.FirstName,
+            LastName: nextPlayer.LastName,
           });
         }
       } else {
         const firstPlayer = players[0];
         if (firstPlayer) {
-          router.push({
-            pathname: "/TotalEnd/Player_center",
-            params: { ...firstPlayer },
+          setCurrentPlayer({
+            Id: firstPlayer.Id,
+            playerId: firstPlayer.playerId,
+            FirstName: firstPlayer.FirstName,
+            LastName: firstPlayer.LastName,
           });
         }
       }
     }, 500),
-    [chamDiem, scores, Id, playerId, token, currentIndex, players]
+    [
+      chamDiem,
+      scores,
+      currentPlayer.Id,
+      currentPlayer.playerId,
+      token,
+      currentIndex,
+      players,
+    ]
   );
 
   const handleKeyPress = useCallback(
@@ -182,9 +204,6 @@ const Player_center = () => {
           setActiveInput((pre) => ({ ...pre, colIndex: pre.colIndex + 1 }));
         } else {
           await nextPlayer();
-          const nextRow =
-            scoresKeys[scoresKeys.findIndex((key) => key === row) + 1];
-          setActiveInput({ row: nextRow, colIndex: 0 });
         }
       }
     }, 300),
@@ -195,21 +214,31 @@ const Player_center = () => {
     debounce(async () => {
       await chamDiem({
         scores,
-        id: Number(Id),
-        playerId: Number(playerId),
+        id: Number(currentPlayer.Id),
+        playerId: Number(currentPlayer.playerId),
         token: token,
       });
       if (currentIndex > 0) {
         const prevPlayer = players[currentIndex - 1];
         if (prevPlayer) {
-          router.push({
-            pathname: "/TotalEnd/Player_center",
-            params: { ...prevPlayer },
+          setCurrentPlayer({
+            Id: prevPlayer.Id,
+            playerId: prevPlayer.playerId,
+            FirstName: prevPlayer.FirstName,
+            LastName: prevPlayer.LastName,
           });
         }
       }
     }, 500),
-    [Id, chamDiem, currentIndex, playerId, players, scores, token]
+    [
+      currentPlayer.Id,
+      chamDiem,
+      currentIndex,
+      currentPlayer.playerId,
+      players,
+      scores,
+      token,
+    ]
   );
 
   const totals = useMemo(
@@ -238,7 +267,9 @@ const Player_center = () => {
           >
             Trước
           </Button>
-          <Text style={styles.title}>{LastName + " " + FirstName}</Text>
+          <Text style={styles.title}>
+            {currentPlayer.LastName + " " + currentPlayer.FirstName}
+          </Text>
           <Button
             onPress={nextPlayer}
             icon={() => <AntDesign name="right" size={24} color="black" />}
