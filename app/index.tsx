@@ -49,7 +49,7 @@ const Login = () => {
     <SafeAreaView style={styles.container}>
       <View>
         <Image
-          source={require("../assets/images/avt.png")}
+          source={require("../assets/images/icon.png")}
           style={styles.image}
           resizeMode="cover"
         />
