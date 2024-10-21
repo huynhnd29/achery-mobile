@@ -44,11 +44,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": "5f1241f9-f81d-4807-8f1f-d4796a7823c2"
-      }
     }
+    // ,
+    // "extra": {
+    //   "eas": {
+    //     "projectId": "5f1241f9-f81d-4807-8f1f-d4796a7823c2"
+    //   }
+    // }
   }
 }
