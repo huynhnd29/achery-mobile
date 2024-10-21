@@ -1,11 +1,5 @@
 // Player_center.tsx
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -95,6 +89,11 @@ const Player_center = () => {
     ...initScore,
   });
 
+  const scoresKeys = useMemo(
+    () => Object.keys(scores),
+    [JSON.stringify(scores)]
+  );
+
   useEffect(() => {
     const playerScore = playersScores.find(
       (playerScore) =>
@@ -113,20 +112,24 @@ const Player_center = () => {
     }
 
     setScores(newScores);
+    const nullInput = Object.keys(newScores).find((s) =>
+      newScores[s as keyof IScore].some((v) => v === 0)
+    ) as keyof IScore;
+    setActiveInput({
+      row: nullInput,
+      colIndex: newScores[nullInput].indexOf(0),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(playersScores), playerId, Id, COL_NUM]);
 
   const handleInputChange = useCallback(
     (value: string, row: keyof IScore, colIndex: number) => {
-      if (colIndex <= COL_NUM) {
-        setScores((prevScores) => {
-          const newScores = { ...prevScores };
-          newScores[row][colIndex] = value;
-          return newScores;
-        });
-      }
+      setScores((prevScores) => {
+        prevScores[row][colIndex] = value;
+        return prevScores;
+      });
     },
-    [COL_NUM]
+    []
   );
 
   const currentIndex = useMemo(
@@ -140,34 +143,37 @@ const Player_center = () => {
     [JSON.stringify(players), Id, playerId]
   );
 
-  const nextPlayer = useCallback(async () => {
-    await chamDiem({
-      scores,
-      id: Number(Id),
-      playerId: Number(playerId),
-      token: token,
-    });
-    if (currentIndex < players.length - 1) {
-      const nextPlayer = players[currentIndex + 1];
-      if (nextPlayer) {
-        router.push({
-          pathname: "/TotalEnd/Player_center",
-          params: { ...nextPlayer },
-        });
+  const nextPlayer = useCallback(
+    debounce(async () => {
+      await chamDiem({
+        scores,
+        id: Number(Id),
+        playerId: Number(playerId),
+        token: token,
+      });
+      if (currentIndex < players.length - 1) {
+        const nextPlayer = players[currentIndex + 1];
+        if (nextPlayer) {
+          router.push({
+            pathname: "/TotalEnd/Player_center",
+            params: { ...nextPlayer },
+          });
+        }
+      } else {
+        const firstPlayer = players[0];
+        if (firstPlayer) {
+          router.push({
+            pathname: "/TotalEnd/Player_center",
+            params: { ...firstPlayer },
+          });
+        }
       }
-    } else {
-      const firstPlayer = players[0];
-      if (firstPlayer) {
-        router.push({
-          pathname: "/TotalEnd/Player_center",
-          params: { ...firstPlayer },
-        });
-      }
-    }
-  }, [chamDiem, scores, Id, playerId, token, currentIndex, players]);
+    }, 500),
+    [chamDiem, scores, Id, playerId, token, currentIndex, players]
+  );
 
   const handleKeyPress = useCallback(
-    debounce((key: string) => {
+    debounce(async (key: string) => {
       if (activeInput) {
         const { row, colIndex } = activeInput;
 
@@ -175,40 +181,50 @@ const Player_center = () => {
         if (colIndex < COL_NUM - 1) {
           setActiveInput((pre) => ({ ...pre, colIndex: pre.colIndex + 1 }));
         } else {
-          nextPlayer().then(() => {
-            const nextRow =
-              Object.keys(scores)[
-                Object.keys(scores).findIndex((key) => key === row) + 1
-              ];
-            setActiveInput({ row: nextRow, colIndex: 0 });
-          });
+          await nextPlayer();
+          const nextRow =
+            scoresKeys[scoresKeys.findIndex((key) => key === row) + 1];
+          setActiveInput({ row: nextRow, colIndex: 0 });
         }
       }
     }, 300),
     [COL_NUM, handleInputChange, nextPlayer, scores, activeInput]
   );
 
-  const prevPlayer = async () => {
-    await chamDiem({
-      scores,
-      id: Number(Id),
-      playerId: Number(playerId),
-      token: token,
-    });
-    if (currentIndex > 0) {
-      const prevPlayer = players[currentIndex - 1];
-      if (prevPlayer) {
-        router.push({
-          pathname: "/TotalEnd/Player_center",
-          params: { ...prevPlayer },
-        });
+  const prevPlayer = useCallback(
+    debounce(async () => {
+      await chamDiem({
+        scores,
+        id: Number(Id),
+        playerId: Number(playerId),
+        token: token,
+      });
+      if (currentIndex > 0) {
+        const prevPlayer = players[currentIndex - 1];
+        if (prevPlayer) {
+          router.push({
+            pathname: "/TotalEnd/Player_center",
+            params: { ...prevPlayer },
+          });
+        }
       }
-    }
-  };
+    }, 500),
+    [Id, chamDiem, currentIndex, playerId, players, scores, token]
+  );
 
   const totals = useMemo(
-    () => Object.keys(scores).map((row) => getEnd(scores[row as keyof IScore])),
-    [scores]
+    () =>
+      scoresKeys.reduce((pre = [], cur) => {
+        const rowTotal = getEnd(scores[cur as keyof IScore]);
+        const a = rowTotal ? rowTotal + (pre[pre.length - 1] || 0) : 0;
+        return [...pre, a];
+      }, [] as number[]),
+    [scores, scoresKeys]
+  );
+
+  const isPageLoading = useMemo(
+    () => isLoading || res.isLoading || res.isFetching,
+    [isLoading, res.isLoading, res.isFetching]
   );
 
   return (
@@ -218,7 +234,7 @@ const Player_center = () => {
           <Button
             icon={() => <AntDesign name="left" size={24} color="black" />}
             onPress={prevPlayer}
-            disabled={currentIndex <= 0}
+            disabled={currentIndex <= 0 || isPageLoading}
           >
             Trước
           </Button>
@@ -226,16 +242,13 @@ const Player_center = () => {
           <Button
             onPress={nextPlayer}
             icon={() => <AntDesign name="right" size={24} color="black" />}
-            disabled={currentIndex >= players.length - 1}
+            disabled={currentIndex >= players.length - 1 || isPageLoading}
             contentStyle={{ flexDirection: "row-reverse" }}
           >
             Sau
           </Button>
         </View>
-        <ProgressBar
-          indeterminate={isLoading || res.isLoading || res.isFetching}
-          color={MD3Colors.error50}
-        />
+        <ProgressBar indeterminate={isPageLoading} color={MD3Colors.error50} />
 
         <View style={styles.player}>
           <View style={styles.colList}>
@@ -253,7 +266,7 @@ const Player_center = () => {
           </View>
           <View style={{ flex: 1 }}>
             <FlashList
-              data={Object.keys(scores).slice(0, ROW_NUM)}
+              data={scoresKeys.slice(0, ROW_NUM)}
               estimatedItemSize={ROW_NUM}
               renderItem={({ item: row, index: rowIndex }) => {
                 return (
@@ -263,9 +276,11 @@ const Player_center = () => {
                     idx={rowIndex}
                     total={totals[rowIndex]}
                     values={scores[row as keyof IScore]}
-                    onItemPress={(itemIdx) =>
-                      setActiveInput({ row, colIndex: itemIdx })
-                    }
+                    onItemPress={(itemIdx) => {
+                      if (!isLoading && !res.isLoading && !res.isFetching) {
+                        setActiveInput({ row, colIndex: itemIdx });
+                      }
+                    }}
                   />
                 );
               }}
@@ -274,7 +289,7 @@ const Player_center = () => {
         </View>
       </View>
       <CustomKeyboard
-        hidden={isLoading || res.isLoading || res.isFetching}
+        hidden={isPageLoading}
         onKeyPress={handleKeyPress}
         is3day={competitionName.includes("3 dây")}
       />

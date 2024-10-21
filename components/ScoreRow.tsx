@@ -17,7 +17,7 @@ const ScoreRowNode = ({
   total: number;
   onItemPress?: (col: number) => void;
 }) => {
-  const end = useMemo(() => getEnd(values), [values]);
+  const end = useMemo(() => getEnd(values), [JSON.stringify(values)]);
   return (
     <View
       style={[
